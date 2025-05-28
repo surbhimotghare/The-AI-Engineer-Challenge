@@ -1,8 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from openai import OpenAI
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",  # Local development
+        "https://the-ai-engineer-challenge-five.vercel.app",  # Your frontend Vercel domain
+        "https://the-ai-engineer-challenge-dddl.vercel.app"   # Your backend Vercel domain
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
