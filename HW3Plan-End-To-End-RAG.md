@@ -23,11 +23,20 @@ Create `api/rag_service.py` with:
 
 ### **1.3 Add New API Endpoints**
 In `api/app.py`:
-- `POST /api/upload-pdf` - Handle PDF file upload
-- `POST /api/index-pdf` - Process and index uploaded PDF
-- `POST /api/rag-chat` - RAG-enhanced chat with PDF context
-- `GET /api/pdf-status` - Check indexing status
-- `DELETE /api/clear-pdf` - Clear current PDF index
+- `POST /api/upload-pdf` - Handle PDF file upload AND processing (combined upload + indexing)
+- `POST /api/rag-chat` - RAG-enhanced streaming chat with PDF context
+- `POST /api/rag-chat-complete` - Complete RAG response with source information and metadata
+- `GET /api/pdf-status` - Check indexing status and PDF metadata
+- `DELETE /api/clear-pdf` - Clear current PDF index and reset RAG system
+
+**Implemented Features:**
+- **File Upload with Validation** - PDF-only uploads with size and format checking
+- **Streaming RAG Responses** - Real-time responses consistent with existing chat experience
+- **Complete RAG Responses** - Full responses with source attribution for debugging
+- **State Management** - Track PDF processing status and vector database state
+- **Comprehensive Error Handling** - User-friendly error messages and proper HTTP codes
+- **Pydantic Models** - Request/response validation with proper typing
+- **API Key Security** - Secure API key handling through request headers
 
 ---
 
