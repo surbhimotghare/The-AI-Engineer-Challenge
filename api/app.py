@@ -1,5 +1,5 @@
 # Import required FastAPI components for building the API
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 # Import Pydantic for data validation and settings management
@@ -97,17 +97,21 @@ async def chat(request: ChatRequest):
 
 # PDF Upload endpoint - handles file upload and processing
 @app.post("/api/upload-pdf", response_model=PDFUploadResponse)
-async def upload_pdf_endpoint(file: UploadFile = File(...)):
+async def upload_pdf_endpoint(file: UploadFile = File(...), api_key: str = Form(...)):
     """
     Upload and process a PDF file for RAG indexing.
     
     Args:
         file: PDF file to upload and process
+        api_key: OpenAI API key for embeddings
         
     Returns:
         Upload status and PDF metadata
     """
     try:
+        # Set the OpenAI API key in environment for RAG service
+        os.environ["OPENAI_API_KEY"] = api_key
+        
         result = await upload_pdf(file)
         return PDFUploadResponse(**result)
     except Exception as e:
