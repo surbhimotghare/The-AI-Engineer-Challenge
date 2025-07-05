@@ -4,9 +4,9 @@
 
 | Branch Name | Feature Summary | Status | Key Changes | Ready to Merge |
 |-------------|----------------|--------|-------------|----------------|
-| `end-to-end-rag` | Complete PDF-to-Chat RAG System | ✅ Complete | Backend: RAG service + 5 API endpoints<br>Frontend: PDF upload + dual chat modes<br>Dependencies: PyPDF2, numpy, react-icons | ✅ Yes |
-| `feature-branch-2` | [Future Enhancement] | 🚧 In Progress | [Description] | ❌ No |
-| `feature-branch-3` | [Future Enhancement] | 📋 Planned | [Description] | ❌ No |
+| `single-pdf-rag` | Single PDF Upload & RAG Chat System | ✅ Complete | Backend: RAG service + 5 API endpoints<br>Frontend: PDF upload + dual chat modes<br>Dependencies: PyPDF2, numpy, react-icons<br>Limitation: One PDF at a time | ✅ Yes |
+| `multi-pdf-rag` | [Future Enhancement] Multiple PDF Support | 📋 Planned | [Multiple PDF management & cross-document search] | ❌ No |
+| `enhanced-rag-features` | [Future Enhancement] Advanced RAG Features | 📋 Planned | [Source attribution, re-ranking, highlighted sections] | ❌ No |
 
 ## 🛠️ Standard Merge Process
 
