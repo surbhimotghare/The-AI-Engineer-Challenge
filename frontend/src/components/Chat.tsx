@@ -49,6 +49,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].value)
   const [apiKey, setApiKey] = useState('')
+  const [isApiKeyLoaded, setIsApiKeyLoaded] = useState(false)
   const [chatMode, setChatMode] = useState<ChatMode>('regular')
   const [currentPDF, setCurrentPDF] = useState<PDFInfo | null>(null)
   const [showPDFSection, setShowPDFSection] = useState(false)
@@ -64,11 +65,19 @@ export default function Chat() {
   useEffect(() => {
     const storedApiKey = localStorage.getItem('openai_api_key')
     if (storedApiKey) {
+      console.log('Chat: Loading API key from localStorage, length:', storedApiKey.length)
       setApiKey(storedApiKey)
     } else {
+      console.log('Chat: No API key found in localStorage, opening modal')
       onOpen()
     }
+    setIsApiKeyLoaded(true)
   }, [onOpen])
+
+  // Debug effect to track API key changes
+  useEffect(() => {
+    console.log('Chat: API key state changed, new length:', apiKey?.length || 0)
+  }, [apiKey])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -196,6 +205,7 @@ export default function Chat() {
   }
 
   const handleApiKeySubmit = (key: string) => {
+    console.log('Chat: Setting API key, length:', key?.length)
     setApiKey(key)
     localStorage.setItem('openai_api_key', key)
     onClose()
@@ -208,6 +218,8 @@ export default function Chat() {
       duration: 3000,
       isClosable: true,
     })
+    
+    console.log('Chat: API key state updated, new value length:', key?.length)
   }
 
   const handlePDFUploadSuccess = (pdfInfo: PDFInfo) => {
@@ -347,11 +359,34 @@ export default function Chat() {
         </Button>
         <Collapse in={showPDFSection}>
           <Box mt={3} p={4} border="1px solid" borderColor={borderColor} borderRadius="md" bg={bgColor}>
-            <PDFUpload
-              apiKey={apiKey}
-              onUploadSuccess={handlePDFUploadSuccess}
-              onUploadError={handlePDFUploadError}
-            />
+            <Text fontSize="xs" color="gray.500" mb={2}>
+              Debug: API Key length = {apiKey?.length || 0} | Loaded: {isApiKeyLoaded.toString()}
+            </Text>
+            {isApiKeyLoaded && apiKey && apiKey.length > 0 ? (
+              <PDFUpload
+                apiKey={apiKey}
+                onUploadSuccess={handlePDFUploadSuccess}
+                onUploadError={handlePDFUploadError}
+              />
+            ) : (
+              <Alert status="warning" borderRadius="md">
+                <AlertIcon />
+                <AlertDescription>
+                  {!isApiKeyLoaded ? 'Loading...' : 'Please set your OpenAI API key first to upload PDFs.'}
+                  {isApiKeyLoaded && (
+                    <Button
+                      variant="link"
+                      colorScheme="orange"
+                      ml={2}
+                      onClick={onOpen}
+                      size="sm"
+                    >
+                      Set API Key
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
           </Box>
         </Collapse>
       </Box>

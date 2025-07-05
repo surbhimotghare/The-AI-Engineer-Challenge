@@ -107,7 +107,13 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
   }, [])
 
   const handleFileUpload = async (file: File) => {
-    if (!apiKey) {
+    // Debug logging to help identify the issue
+    console.log('PDFUpload: apiKey prop value:', apiKey)
+    console.log('PDFUpload: apiKey type:', typeof apiKey)
+    console.log('PDFUpload: apiKey length:', apiKey?.length)
+    
+    if (!apiKey || apiKey.trim() === '') {
+      console.log('PDFUpload: API key validation failed - no key provided')
       toast({
         title: 'API Key Required',
         description: 'Please set your OpenAI API key first.',
@@ -117,6 +123,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       })
       return
     }
+
+    console.log('PDFUpload: API key validation passed, proceeding with upload')
 
     setUploadState(prev => ({
       ...prev,
@@ -129,7 +137,7 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('api_key', apiKey)
+      formData.append('api_key', apiKey.trim())
 
       const API_BASE_URL = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) 
         ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') 
