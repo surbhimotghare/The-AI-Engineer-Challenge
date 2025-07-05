@@ -7,6 +7,7 @@ import {
   InputRightElement,
   Button,
   Box,
+  useColorModeValue,
 } from '@chakra-ui/react'
 
 interface ChatInputProps {
@@ -16,6 +17,12 @@ interface ChatInputProps {
 
 export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
   const [message, setMessage] = useState('')
+
+  // Librarian-themed colors
+  const inputBg = useColorModeValue('white', 'gray.700')
+  const inputBorder = useColorModeValue('amber.300', 'amber.600')
+  const inputFocusBorder = useColorModeValue('amber.500', 'amber.400')
+  const placeholderColor = useColorModeValue('gray.500', 'gray.400')
 
   const handleSend = () => {
     if (message.trim() && !isLoading) {
@@ -33,24 +40,33 @@ export default function ChatInput({ onSendMessage, isLoading }: ChatInputProps) 
 
   return (
     <Box>
-      <InputGroup size="md">
+      <InputGroup size="lg">
         <Input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
+          placeholder="Ask the librarian anything... 📚"
           disabled={isLoading}
-          pr="4.5rem"
+          pr="5rem"
+          bg={inputBg}
+          borderColor={inputBorder}
+          focusBorderColor={inputFocusBorder}
+          _placeholder={{ color: placeholderColor }}
+          borderRadius="xl"
+          shadow="sm"
         />
-        <InputRightElement width="4.5rem">
+        <InputRightElement width="5rem">
           <Button
-            h="1.75rem"
+            h="2rem"
             size="sm"
             onClick={handleSend}
             isLoading={isLoading}
             disabled={!message.trim() || isLoading}
+            colorScheme="amber"
+            borderRadius="lg"
+            loadingText="..."
           >
-            Send
+            📤 Send
           </Button>
         </InputRightElement>
       </InputGroup>

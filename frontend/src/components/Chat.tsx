@@ -20,8 +20,11 @@ import {
   Alert,
   AlertIcon,
   AlertDescription,
+  Heading,
+  Container,
+  Avatar,
 } from '@chakra-ui/react'
-import { FiMessageCircle, FiFileText, FiChevronDown, FiChevronUp, FiCheck, FiX } from 'react-icons/fi'
+import { FiMessageCircle, FiBook, FiChevronDown, FiChevronUp, FiCheck, FiX, FiBookOpen, FiUsers } from 'react-icons/fi'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import ApiKeyModal from './ApiKeyModal'
@@ -58,9 +61,16 @@ export default function Chat() {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const toast = useToast()
 
-  // Color mode values
-  const borderColor = useColorModeValue('gray.200', 'gray.600')
-  const bgColor = useColorModeValue('white', 'gray.800')
+  // Librarian-themed colors
+  const bgGradient = useColorModeValue(
+    'linear(to-br, amber.50, orange.50, red.50)',
+    'linear(to-br, gray.900, amber.900, orange.900)'
+  )
+  const librarianCardBg = useColorModeValue('white', 'gray.800')
+  const librarianCardBorder = useColorModeValue('amber.200', 'amber.600')
+  const chatAreaBg = useColorModeValue('amber.25', 'gray.700')
+  const warmText = useColorModeValue('amber.800', 'amber.200')
+  const accentColor = useColorModeValue('amber.600', 'amber.400')
 
   useEffect(() => {
     const storedApiKey = localStorage.getItem('openai_api_key')
@@ -107,8 +117,8 @@ export default function Chat() {
     // If in RAG mode but no PDF is loaded, show warning
     if (chatMode === 'rag' && !currentPDF) {
       toast({
-        title: 'No PDF Loaded',
-        description: 'Please upload a PDF document first to use RAG chat mode.',
+        title: 'No Document in Collection',
+        description: 'Please add a document to the library first to discuss its contents.',
         status: 'warning',
         duration: 5000,
         isClosable: true,
@@ -132,10 +142,10 @@ export default function Chat() {
       let accumulatedContent = ''
       
       if (chatMode === 'regular') {
-        // Regular chat mode
+        // Regular chat mode - librarian persona
         await sendChatMessage(
           {
-            developer_message: "You are a helpful AI assistant.",
+            developer_message: "You are a wise, friendly librarian with extensive knowledge. You help patrons find information, answer questions, and provide thoughtful guidance. Use warm, welcoming language as if you're speaking to a visitor in your library.",
             user_message: content,
             model: selectedModel,
             api_key: apiKey,
@@ -155,7 +165,7 @@ export default function Chat() {
           }
         )
       } else {
-        // RAG chat mode
+        // RAG chat mode - document-specific librarian
         await sendRAGChatMessage(
           {
             question: content,
@@ -188,11 +198,11 @@ export default function Chat() {
       })
     } catch (error) {
       const errorMessage = chatMode === 'rag' 
-        ? 'Failed to send RAG message. Please check your PDF is uploaded and try again.'
-        : 'Failed to send message. Please try again.'
+        ? 'I apologize, but I encountered an issue accessing the document. Please ensure your document is properly uploaded and try again.'
+        : 'I apologize, but I encountered an issue processing your request. Please try again.'
       
       toast({
-        title: 'Error',
+        title: 'Librarian Notice',
         description: errorMessage,
         status: 'error',
         duration: 5000,
@@ -212,8 +222,8 @@ export default function Chat() {
     
     // Show success feedback
     toast({
-      title: 'API Key Updated',
-      description: 'Your OpenAI API key has been saved and validated.',
+      title: 'Library Access Granted',
+      description: 'Your credentials have been validated. Welcome to the library!',
       status: 'success',
       duration: 3000,
       isClosable: true,
@@ -227,8 +237,8 @@ export default function Chat() {
     // Auto-switch to RAG mode when PDF is uploaded
     setChatMode('rag')
     toast({
-      title: 'Ready for RAG Chat',
-      description: 'Your PDF has been processed. You can now ask questions about it!',
+      title: 'Document Added to Collection',
+      description: `"${pdfInfo.filename}" has been catalogued and is ready for discussion!`,
       status: 'success',
       duration: 5000,
       isClosable: true,
@@ -249,18 +259,22 @@ export default function Chat() {
     <ButtonGroup size="sm" isAttached variant="outline">
       <Button
         onClick={() => setChatMode('regular')}
-        colorScheme={chatMode === 'regular' ? 'blue' : 'gray'}
-        leftIcon={<FiMessageCircle />}
+        colorScheme={chatMode === 'regular' ? 'amber' : 'gray'}
+        leftIcon={<FiUsers />}
+        bg={chatMode === 'regular' ? 'amber.100' : 'white'}
+        borderColor={chatMode === 'regular' ? 'amber.300' : 'gray.300'}
       >
-        Regular Chat
+        General Inquiry
       </Button>
       <Button
         onClick={() => setChatMode('rag')}
-        colorScheme={chatMode === 'rag' ? 'blue' : 'gray'}
-        leftIcon={<FiFileText />}
+        colorScheme={chatMode === 'rag' ? 'amber' : 'gray'}
+        leftIcon={<FiBookOpen />}
         isDisabled={!currentPDF}
+        bg={chatMode === 'rag' ? 'amber.100' : 'white'}
+        borderColor={chatMode === 'rag' ? 'amber.300' : 'gray.300'}
       >
-        PDF Chat
+        Document Discussion
       </Button>
     </ButtonGroup>
   )
@@ -271,40 +285,70 @@ export default function Chat() {
     return (
       <Box
         p={3}
-        bg={useColorModeValue('blue.50', 'blue.900')}
-        borderRadius="md"
+        bg={useColorModeValue('green.50', 'green.900')}
+        borderRadius="lg"
         border="1px solid"
-        borderColor={useColorModeValue('blue.200', 'blue.600')}
+        borderColor={useColorModeValue('green.200', 'green.600')}
       >
         <HStack justify="space-between">
           <HStack spacing={2}>
-            <Icon as={FiFileText} color="blue.500" />
-            <Text fontSize="sm" fontWeight="medium">
-              {currentPDF.filename}
+            <Icon as={FiBook} color="green.500" />
+            <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('green.800', 'green.200')}>
+              📖 {currentPDF.filename}
             </Text>
-            <Badge colorScheme="blue" size="sm">
+            <Badge colorScheme="green" size="sm">
               {currentPDF.num_pages} pages
             </Badge>
-            <Badge colorScheme="green" size="sm">
-              {currentPDF.num_chunks} chunks
+            <Badge colorScheme="blue" size="sm">
+              {currentPDF.num_chunks} sections
             </Badge>
           </HStack>
-          <Text fontSize="xs" color="gray.500">
-            Ready for questions
+          <Text fontSize="xs" color={useColorModeValue('green.600', 'green.300')}>
+            Ready for discussion
           </Text>
         </HStack>
       </Box>
     )
   }
 
-  const renderChatHeader = () => (
-    <Box mb={4}>
-      <HStack justify="space-between" align="center" mb={4}>
+  const renderLibrarianHeader = () => (
+    <Box
+      bg={librarianCardBg}
+      borderRadius="xl"
+      p={6}
+      border="2px solid"
+      borderColor={librarianCardBorder}
+      shadow="lg"
+      mb={6}
+    >
+      <HStack spacing={4} align="center">
+        <Avatar
+          size="lg"
+          name="Library Assistant"
+          bg={accentColor}
+          color="white"
+          icon={<FiBook fontSize="1.5rem" />}
+        />
+        <VStack align="start" spacing={1}>
+          <Heading size="lg" color={warmText}>
+            📚 Digital Library Assistant
+          </Heading>
+          <Text color={useColorModeValue('gray.600', 'gray.300')} fontSize="md">
+            Your friendly neighborhood librarian, ready to help with research and questions
+          </Text>
+        </VStack>
+      </HStack>
+      
+      <Divider my={4} borderColor={librarianCardBorder} />
+      
+      <HStack justify="space-between" align="center">
         <HStack spacing={4}>
           <Select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             maxW="200px"
+            bg={useColorModeValue('white', 'gray.700')}
+            borderColor={useColorModeValue('amber.300', 'amber.600')}
           >
             {AVAILABLE_MODELS.map((model) => (
               <option key={model.value} value={model.value}>
@@ -316,10 +360,11 @@ export default function Chat() {
             onClick={onOpen} 
             size="md"
             variant={apiKey ? "outline" : "solid"}
-            colorScheme={apiKey ? "green" : "blue"}
+            colorScheme={apiKey ? "green" : "amber"}
             leftIcon={apiKey ? <Icon as={FiCheck} /> : <Icon as={FiX} />}
+            borderColor={apiKey ? "green.300" : "amber.300"}
           >
-            {apiKey ? 'API Key Set ✓' : 'Set API Key'}
+            {apiKey ? 'Library Access ✓' : 'Set Library Card'}
           </Button>
         </HStack>
         
@@ -328,10 +373,10 @@ export default function Chat() {
 
       {/* API Key Status Alert */}
       {!apiKey && (
-        <Alert status="warning" borderRadius="md" mb={4}>
+        <Alert status="warning" borderRadius="md" mt={4} bg={useColorModeValue('orange.50', 'orange.900')}>
           <AlertIcon />
           <AlertDescription>
-            Please set your OpenAI API key to start chatting. 
+            Please present your library card (API key) to access the digital collection. 
             <Button
               variant="link"
               colorScheme="orange"
@@ -339,13 +384,17 @@ export default function Chat() {
               onClick={onOpen}
               size="sm"
             >
-              Click here to add your key
+              Get Library Card
             </Button>
           </AlertDescription>
         </Alert>
       )}
 
-      {currentPDF && renderPDFStatus()}
+      {currentPDF && (
+        <Box mt={4}>
+          {renderPDFStatus()}
+        </Box>
+      )}
       
       {/* PDF Upload Section */}
       <Box mt={4}>
@@ -354,14 +403,12 @@ export default function Chat() {
           variant="ghost"
           size="sm"
           leftIcon={showPDFSection ? <FiChevronUp /> : <FiChevronDown />}
+          color={accentColor}
         >
-          {showPDFSection ? 'Hide' : 'Show'} PDF Upload
+          {showPDFSection ? 'Hide' : 'Show'} Document Collection
         </Button>
         <Collapse in={showPDFSection}>
-          <Box mt={3} p={4} border="1px solid" borderColor={borderColor} borderRadius="md" bg={bgColor}>
-            <Text fontSize="xs" color="gray.500" mb={2}>
-              Debug: API Key length = {apiKey?.length || 0} | Loaded: {isApiKeyLoaded.toString()}
-            </Text>
+          <Box mt={3} p={4} border="1px solid" borderColor={librarianCardBorder} borderRadius="md" bg={useColorModeValue('amber.25', 'gray.700')}>
             {isApiKeyLoaded && apiKey && apiKey.length > 0 ? (
               <PDFUpload
                 apiKey={apiKey}
@@ -372,7 +419,7 @@ export default function Chat() {
               <Alert status="warning" borderRadius="md">
                 <AlertIcon />
                 <AlertDescription>
-                  {!isApiKeyLoaded ? 'Loading...' : 'Please set your OpenAI API key first to upload PDFs.'}
+                  {!isApiKeyLoaded ? 'Loading library system...' : 'Please present your library card first to add documents.'}
                   {isApiKeyLoaded && (
                     <Button
                       variant="link"
@@ -381,7 +428,7 @@ export default function Chat() {
                       onClick={onOpen}
                       size="sm"
                     >
-                      Set API Key
+                      Get Library Card
                     </Button>
                   )}
                 </AlertDescription>
@@ -393,47 +440,60 @@ export default function Chat() {
     </Box>
   )
 
+  const getWelcomeMessage = () => {
+    if (chatMode === 'regular') {
+      return "Welcome to the library! I'm here to help with any questions you might have. Feel free to ask about any topic."
+    } else {
+      return currentPDF 
+        ? `I've reviewed "${currentPDF.filename}" and I'm ready to discuss its contents with you. What would you like to know?`
+        : 'Please add a document to the collection so we can discuss its contents together.'
+    }
+  }
+
   return (
-    <Box h="calc(100vh - 200px)" display="flex" flexDirection="column">
-      {renderChatHeader()}
+    <Box minH="100vh" bgGradient={bgGradient} p={6}>
+      <Container maxW="4xl">
+        {renderLibrarianHeader()}
 
-      <VStack
-        flex={1}
-        overflowY="auto"
-        spacing={4}
-        align="stretch"
-        mb={4}
-        p={4}
-        borderRadius="md"
-        bg="gray.50"
-      >
-        {messages.length === 0 && (
-          <Box textAlign="center" py={8}>
-            <Text color="gray.500" fontSize="lg">
-              {chatMode === 'regular' 
-                ? 'Start a conversation with the AI assistant'
-                : currentPDF 
-                  ? `Ask questions about "${currentPDF.filename}"`
-                  : 'Upload a PDF document to start asking questions about it'
-              }
-            </Text>
-          </Box>
-        )}
-        
-        {messages.map((message, index) => (
-          <ChatMessage key={index} message={message} />
-        ))}
-        <div ref={messagesEndRef} />
-      </VStack>
+        <VStack
+          flex={1}
+          h="500px"
+          overflowY="auto"
+          spacing={4}
+          align="stretch"
+          p={4}
+          borderRadius="xl"
+          bg={chatAreaBg}
+          border="1px solid"
+          borderColor={librarianCardBorder}
+          shadow="inner"
+        >
+          {messages.length === 0 && (
+            <Box textAlign="center" py={8}>
+              <Icon as={FiBook} w={12} h={12} color={accentColor} mb={4} />
+              <Text color={warmText} fontSize="lg" fontWeight="medium">
+                {getWelcomeMessage()}
+              </Text>
+            </Box>
+          )}
+          
+          {messages.map((message, index) => (
+            <ChatMessage key={index} message={message} />
+          ))}
+          <div ref={messagesEndRef} />
+        </VStack>
 
-      <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+        <Box mt={4}>
+          <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />
+        </Box>
 
-      <ApiKeyModal
-        isOpen={isOpen}
-        onClose={onClose}
-        onSubmit={handleApiKeySubmit}
-        initialApiKey={apiKey}
-      />
+        <ApiKeyModal
+          isOpen={isOpen}
+          onClose={onClose}
+          onSubmit={handleApiKeySubmit}
+          initialApiKey={apiKey}
+        />
+      </Container>
     </Box>
   )
 } 
