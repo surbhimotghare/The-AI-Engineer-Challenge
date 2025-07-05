@@ -20,9 +20,10 @@ import {
   HStack,
   Icon,
   FormHelperText,
+  useColorModeValue,
 } from '@chakra-ui/react'
 import { useState } from 'react'
-import { FiCheck, FiAlertCircle } from 'react-icons/fi'
+import { FiCheck, FiAlertCircle, FiBook } from 'react-icons/fi'
 
 interface ApiKeyModalProps {
   isOpen: boolean
@@ -78,8 +79,8 @@ export default function ApiKeyModal({
     
     if (!trimmedKey) {
       toast({
-        title: 'API Key Required',
-        description: 'Please enter your OpenAI API key.',
+        title: 'Library Card Required',
+        description: 'Please present your library card (API key) to access the collection.',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -89,7 +90,7 @@ export default function ApiKeyModal({
 
     if (!validateApiKey(trimmedKey)) {
       toast({
-        title: 'Invalid API Key Format',
+        title: 'Invalid Library Card Format',
         description: 'OpenAI API keys should start with "sk-" and be at least 40 characters long.',
         status: 'error',
         duration: 5000,
@@ -110,8 +111,8 @@ export default function ApiKeyModal({
       onSubmit(trimmedKey)
       
       toast({
-        title: 'API Key Saved Successfully!',
-        description: 'Your OpenAI API key has been validated and saved.',
+        title: 'Library Access Granted!',
+        description: 'Your library card has been validated. Welcome to the digital collection!',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -124,8 +125,8 @@ export default function ApiKeyModal({
     } else {
       setValidationStatus('invalid')
       toast({
-        title: 'Invalid API Key',
-        description: 'The API key appears to be invalid or inactive. Please check your key and try again.',
+        title: 'Invalid Library Card',
+        description: 'Your library card appears to be invalid or expired. Please check your credentials and try again.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -145,7 +146,7 @@ export default function ApiKeyModal({
     switch (validationStatus) {
       case 'valid': return 'green'
       case 'invalid': return 'red'
-      default: return 'gray'
+      default: return 'amber'
     }
   }
 
@@ -160,11 +161,14 @@ export default function ApiKeyModal({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} closeOnOverlayClick={!isValidating}>
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent bg={useColorModeValue('white', 'gray.800')} borderRadius="xl">
         <form onSubmit={handleSubmit}>
-          <ModalHeader>
+          <ModalHeader bg={useColorModeValue('amber.50', 'amber.900')} borderTopRadius="xl">
             <HStack>
-              <Text>OpenAI API Key</Text>
+              <Icon as={FiBook} color={useColorModeValue('amber.600', 'amber.300')} boxSize={5} />
+              <Text color={useColorModeValue('amber.800', 'amber.200')}>
+                📚 Library Card Registration
+              </Text>
               {validationStatus !== 'idle' && (
                 <Icon 
                   as={getValidationIcon()} 
@@ -175,18 +179,25 @@ export default function ApiKeyModal({
             </HStack>
           </ModalHeader>
           {!isValidating && <ModalCloseButton />}
-          <ModalBody pb={6}>
+          <ModalBody pb={6} pt={6}>
             <VStack spacing={4}>
+              <Text fontSize="sm" color={useColorModeValue('gray.600', 'gray.300')} textAlign="center">
+                Present your OpenAI API key to access the digital library collection and chat with documents.
+              </Text>
+
               <FormControl isRequired>
-                <FormLabel>API Key</FormLabel>
+                <FormLabel color={useColorModeValue('amber.800', 'amber.200')}>
+                  Library Card (API Key)
+                </FormLabel>
                 <Input
                   type="password"
                   value={apiKey}
                   onChange={(e) => handleApiKeyChange(e.target.value)}
                   placeholder="sk-..."
                   isDisabled={isValidating}
-                  borderColor={validationStatus === 'invalid' ? 'red.300' : undefined}
-                  focusBorderColor={validationStatus === 'valid' ? 'green.400' : 'blue.400'}
+                  borderColor={validationStatus === 'invalid' ? 'red.300' : useColorModeValue('amber.300', 'amber.600')}
+                  focusBorderColor={validationStatus === 'valid' ? 'green.400' : useColorModeValue('amber.500', 'amber.400')}
+                  bg={useColorModeValue('white', 'gray.700')}
                 />
                 <FormHelperText>
                   Enter your OpenAI API key. You can find this in your OpenAI dashboard under API keys.
@@ -194,10 +205,10 @@ export default function ApiKeyModal({
               </FormControl>
 
               {validationStatus === 'valid' && (
-                <Alert status="success" borderRadius="md">
+                <Alert status="success" borderRadius="md" bg={useColorModeValue('green.50', 'green.900')}>
                   <AlertIcon />
                   <AlertDescription>
-                    API key is valid and has been saved successfully!
+                    🎉 Library card validated! Access granted to the digital collection.
                   </AlertDescription>
                 </Alert>
               )}
@@ -206,20 +217,21 @@ export default function ApiKeyModal({
                 <Alert status="error" borderRadius="md">
                   <AlertIcon />
                   <AlertDescription>
-                    Invalid or inactive API key. Please check your key and try again.
+                    ❌ Invalid or expired library card. Please check your credentials and try again.
                   </AlertDescription>
                 </Alert>
               )}
 
               <Button 
                 type="submit" 
-                colorScheme={validationStatus === 'valid' ? 'green' : 'blue'}
+                colorScheme={validationStatus === 'valid' ? 'green' : 'amber'}
                 width="full"
                 isLoading={isValidating}
-                loadingText="Validating API Key..."
+                loadingText="Validating Library Card..."
                 isDisabled={!apiKey.trim()}
+                size="lg"
               >
-                {validationStatus === 'valid' ? 'API Key Saved!' : 'Validate & Save API Key'}
+                {validationStatus === 'valid' ? '✅ Library Access Granted!' : '🔑 Validate & Register Library Card'}
               </Button>
             </VStack>
           </ModalBody>

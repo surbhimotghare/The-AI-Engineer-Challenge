@@ -55,11 +55,11 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
 
   const toast = useToast()
 
-  // Color mode values for consistent theming
-  const bgColor = useColorModeValue('gray.50', 'gray.700')
-  const borderColor = useColorModeValue('gray.300', 'gray.600')
-  const hoverBorderColor = useColorModeValue('blue.400', 'blue.300')
-  const activeBorderColor = useColorModeValue('blue.500', 'blue.400')
+  // Librarian-themed colors for consistency
+  const bgColor = useColorModeValue('amber.50', 'gray.700')
+  const borderColor = useColorModeValue('amber.300', 'amber.600')
+  const hoverBorderColor = useColorModeValue('amber.400', 'amber.300')
+  const activeBorderColor = useColorModeValue('amber.500', 'amber.400')
 
   const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -115,8 +115,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
     if (!apiKey || apiKey.trim() === '') {
       console.log('PDFUpload: API key validation failed - no key provided')
       toast({
-        title: 'API Key Required',
-        description: 'Please set your OpenAI API key first.',
+        title: 'Library Access Required',
+        description: 'Please present your library card (API key) to add documents to the collection.',
         status: 'warning',
         duration: 5000,
         isClosable: true,
@@ -171,14 +171,14 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
         onUploadSuccess(result.pdf_info)
         
         toast({
-          title: 'PDF Uploaded Successfully',
-          description: `${result.pdf_info.filename} has been processed and indexed.`,
+          title: 'Document Successfully Added',
+          description: `📚 "${result.pdf_info.filename}" has been catalogued and added to your collection.`,
           status: 'success',
           duration: 5000,
           isClosable: true,
         })
       } else {
-        throw new Error('Upload succeeded but no PDF info received')
+        throw new Error('Document upload succeeded but cataloguing information unavailable')
       }
 
     } catch (error) {
@@ -195,8 +195,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       onUploadError(errorMessage)
       
       toast({
-        title: 'Upload Failed',
-        description: errorMessage,
+        title: 'Cataloguing Failed',
+        description: `Unable to add document to collection: ${errorMessage}`,
         status: 'error',
         duration: 7000,
         isClosable: true,
@@ -228,8 +228,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
         }))
         
         toast({
-          title: 'PDF Cleared',
-          description: 'PDF index has been cleared. You can upload a new document.',
+          title: 'Collection Cleared',
+          description: 'Document removed from collection. You may add a new document.',
           status: 'info',
           duration: 5000,
           isClosable: true,
@@ -237,8 +237,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       }
     } catch (error) {
       toast({
-        title: 'Error',
-        description: 'Failed to clear PDF index.',
+        title: 'Collection Error',
+        description: 'Unable to clear document collection.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -260,12 +260,12 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       borderRadius="lg"
       p={8}
       textAlign="center"
-      bg={dragActive ? useColorModeValue('blue.50', 'blue.900') : bgColor}
+      bg={dragActive ? useColorModeValue('amber.100', 'amber.900') : bgColor}
       transition="all 0.2s"
       cursor="pointer"
       _hover={{
         borderColor: hoverBorderColor,
-        bg: useColorModeValue('gray.100', 'gray.600'),
+        bg: useColorModeValue('amber.75', 'gray.600'),
       }}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -274,17 +274,17 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       onClick={() => document.getElementById('file-upload')?.click()}
     >
       <VStack spacing={4}>
-        <Icon as={FiUpload} w={10} h={10} color="gray.400" />
+        <Icon as={FiUpload} w={10} h={10} color={useColorModeValue('amber.500', 'amber.300')} />
         <VStack spacing={2}>
-          <Text fontSize="lg" fontWeight="medium">
-            Drop your PDF here or click to browse
+          <Text fontSize="lg" fontWeight="medium" color={useColorModeValue('amber.800', 'amber.200')}>
+            📚 Add Document to Collection
           </Text>
-          <Text fontSize="sm" color="gray.500">
-            Supports PDF files up to 50MB
+          <Text fontSize="sm" color={useColorModeValue('amber.600', 'amber.400')}>
+            Drop your PDF here or click to browse • Max 50MB
           </Text>
         </VStack>
-        <Button colorScheme="blue" variant="outline" size="sm">
-          Choose File
+        <Button colorScheme="amber" variant="outline" size="sm">
+          Select Document
         </Button>
       </VStack>
       <input
@@ -300,24 +300,24 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
   const renderProgress = () => (
     <VStack spacing={4} w="full">
       <HStack justify="space-between" w="full">
-        <Text fontSize="sm" fontWeight="medium">
-          {uploadState.status === 'uploading' ? 'Uploading PDF...' : 'Processing PDF...'}
+        <Text fontSize="sm" fontWeight="medium" color={useColorModeValue('amber.800', 'amber.200')}>
+          {uploadState.status === 'uploading' ? '📤 Uploading Document...' : '⚙️ Cataloguing Document...'}
         </Text>
-        <Text fontSize="sm" color="gray.500">
+        <Text fontSize="sm" color={useColorModeValue('amber.600', 'amber.400')}>
           {uploadState.progress}%
         </Text>
       </HStack>
       <Progress
         value={uploadState.progress}
         size="lg"
-        colorScheme="blue"
+        colorScheme="amber"
         w="full"
         borderRadius="md"
       />
-      <Text fontSize="xs" color="gray.500" textAlign="center">
+      <Text fontSize="xs" color={useColorModeValue('amber.600', 'amber.400')} textAlign="center">
         {uploadState.status === 'uploading' 
-          ? 'Uploading file to server...' 
-          : 'Extracting text and creating embeddings...'}
+          ? 'Transferring document to library servers...' 
+          : 'Processing text and creating searchable index...'}
       </Text>
     </VStack>
   )
@@ -326,27 +326,27 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
     if (!uploadState.currentPDF) return null
 
     return (
-      <Alert status="success" borderRadius="md">
+      <Alert status="success" borderRadius="md" bg={useColorModeValue('green.50', 'green.900')}>
         <AlertIcon />
         <Box flex="1">
-          <AlertTitle fontSize="sm">PDF Ready!</AlertTitle>
+          <AlertTitle fontSize="sm">📖 Document Ready!</AlertTitle>
           <AlertDescription fontSize="xs">
             <VStack align="start" spacing={1} mt={2}>
               <HStack spacing={4}>
-                <Badge colorScheme="blue">
+                <Badge colorScheme="green">
                   <Icon as={FiFile} mr={1} />
                   {uploadState.currentPDF.filename}
                 </Badge>
-                <Badge colorScheme="green">
+                <Badge colorScheme="amber">
                   {uploadState.currentPDF.num_pages} pages
                 </Badge>
-                <Badge colorScheme="purple">
-                  {uploadState.currentPDF.num_chunks} chunks
+                <Badge colorScheme="blue">
+                  {uploadState.currentPDF.num_chunks} sections
                 </Badge>
               </HStack>
-              <Text fontSize="xs" color="gray.600">
-                Size: {formatFileSize(uploadState.currentPDF.content_length)} • 
-                Text: {uploadState.currentPDF.total_text_length.toLocaleString()} characters
+              <Text fontSize="xs" color={useColorModeValue('green.600', 'green.400')}>
+                📊 Size: {formatFileSize(uploadState.currentPDF.content_length)} • 
+                Text: {uploadState.currentPDF.total_text_length.toLocaleString()} characters indexed
               </Text>
             </VStack>
           </AlertDescription>
@@ -369,7 +369,7 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       <Alert status="error" borderRadius="md">
         <AlertIcon />
         <Box flex="1">
-          <AlertTitle fontSize="sm">Upload Failed</AlertTitle>
+          <AlertTitle fontSize="sm">❌ Cataloguing Failed</AlertTitle>
           <AlertDescription fontSize="xs">
             {uploadState.error}
           </AlertDescription>
@@ -390,8 +390,8 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       <VStack spacing={4} align="stretch">
         {/* Header */}
         <Flex justify="space-between" align="center">
-          <Text fontSize="lg" fontWeight="semibold">
-            PDF Document
+          <Text fontSize="lg" fontWeight="semibold" color={useColorModeValue('amber.800', 'amber.200')}>
+            📚 Document Collection
           </Text>
           {uploadState.currentPDF && (
             <Button
@@ -401,7 +401,7 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
               leftIcon={<FiTrash2 />}
               onClick={handleClearPDF}
             >
-              Clear
+              Remove
             </Button>
           )}
         </Flex>
