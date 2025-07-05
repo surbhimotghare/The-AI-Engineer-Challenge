@@ -17,8 +17,11 @@ import {
   Flex,
   Collapse,
   useColorModeValue,
+  Alert,
+  AlertIcon,
+  AlertDescription,
 } from '@chakra-ui/react'
-import { FiMessageCircle, FiFileText, FiChevronDown, FiChevronUp } from 'react-icons/fi'
+import { FiMessageCircle, FiFileText, FiChevronDown, FiChevronUp, FiCheck, FiX } from 'react-icons/fi'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import ApiKeyModal from './ApiKeyModal'
@@ -196,6 +199,15 @@ export default function Chat() {
     setApiKey(key)
     localStorage.setItem('openai_api_key', key)
     onClose()
+    
+    // Show success feedback
+    toast({
+      title: 'API Key Updated',
+      description: 'Your OpenAI API key has been saved and validated.',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    })
   }
 
   const handlePDFUploadSuccess = (pdfInfo: PDFInfo) => {
@@ -288,13 +300,38 @@ export default function Chat() {
               </option>
             ))}
           </Select>
-          <Button onClick={onOpen} size="md">
-            {apiKey ? 'Change API Key' : 'Set API Key'}
+          <Button 
+            onClick={onOpen} 
+            size="md"
+            variant={apiKey ? "outline" : "solid"}
+            colorScheme={apiKey ? "green" : "blue"}
+            leftIcon={apiKey ? <Icon as={FiCheck} /> : <Icon as={FiX} />}
+          >
+            {apiKey ? 'API Key Set ✓' : 'Set API Key'}
           </Button>
         </HStack>
         
         {renderChatModeToggle()}
       </HStack>
+
+      {/* API Key Status Alert */}
+      {!apiKey && (
+        <Alert status="warning" borderRadius="md" mb={4}>
+          <AlertIcon />
+          <AlertDescription>
+            Please set your OpenAI API key to start chatting. 
+            <Button
+              variant="link"
+              colorScheme="orange"
+              ml={2}
+              onClick={onOpen}
+              size="sm"
+            >
+              Click here to add your key
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {currentPDF && renderPDFStatus()}
       
