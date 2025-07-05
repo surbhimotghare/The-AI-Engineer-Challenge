@@ -7,7 +7,7 @@ from fastapi import UploadFile, HTTPException
 
 # Import aimakerspace utilities
 import sys
-sys.path.append('..')
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from aimakerspace.text_utils import PDFLoader, CharacterTextSplitter
 from aimakerspace.vectordatabase import VectorDatabase
 from aimakerspace.openai_utils.embedding import EmbeddingModel
@@ -42,15 +42,19 @@ class RAGManager:
         """
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.embedding_model_name = embedding_model_name
+        self.chat_model_name = chat_model_name
         
-        # Initialize aimakerspace components
+        # Initialize text splitter (doesn't need API key)
         self.text_splitter = CharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap
         )
-        self.embedding_model = EmbeddingModel(embedding_model_name)
-        self.vector_db = VectorDatabase(embedding_model=self.embedding_model)
-        self.chat_model = ChatOpenAI(model_name=chat_model_name)
+        
+        # Initialize lazy-loaded components
+        self.embedding_model = None
+        self.vector_db = None
+        self.chat_model = None
         
         # PDF processing state
         self.current_pdf_info: Optional[Dict[str, Any]] = None
@@ -73,6 +77,15 @@ Context from PDF:
         
         self.user_prompt = UserRolePrompt("{question}")
     
+    def _ensure_models_initialized(self):
+        """Initialize OpenAI models if not already initialized."""
+        if self.embedding_model is None:
+            self.embedding_model = EmbeddingModel(self.embedding_model_name)
+        if self.vector_db is None:
+            self.vector_db = VectorDatabase(embedding_model=self.embedding_model)
+        if self.chat_model is None:
+            self.chat_model = ChatOpenAI(model_name=self.chat_model_name)
+    
     async def upload_and_process_pdf(self, file: UploadFile) -> Dict[str, Any]:
         """
         Upload and process a PDF file through the complete RAG pipeline.
@@ -84,6 +97,9 @@ Context from PDF:
             Dict containing processing status and metadata
         """
         try:
+            # Ensure models are initialized
+            self._ensure_models_initialized()
+            
             # Validate file
             if not file.filename.lower().endswith('.pdf'):
                 raise HTTPException(status_code=400, detail="File must be a PDF")
@@ -147,6 +163,9 @@ Context from PDF:
             raise HTTPException(status_code=400, detail="No PDF is currently indexed. Please upload and index a PDF first.")
         
         try:
+            # Ensure models are initialized
+            self._ensure_models_initialized()
+            
             # Retrieve relevant chunks
             relevant_chunks = self.vector_db.search_by_text(
                 question, 
@@ -196,6 +215,9 @@ Context from PDF:
             raise HTTPException(status_code=400, detail="No PDF is currently indexed. Please upload and index a PDF first.")
         
         try:
+            # Ensure models are initialized
+            self._ensure_models_initialized()
+            
             # Retrieve relevant chunks
             relevant_chunks = self.vector_db.search_by_text(
                 question, 
@@ -228,10 +250,14 @@ Context from PDF:
         Returns:
             Dict containing PDF status and metadata
         """
+        vector_db_size = 0
+        if self.vector_db is not None:
+            vector_db_size = len(self.vector_db.vectors)
+        
         return {
             "is_indexed": self.is_indexed,
             "pdf_info": self.current_pdf_info,
-            "vector_db_size": len(self.vector_db.vectors) if self.is_indexed else 0
+            "vector_db_size": vector_db_size
         }
     
     def clear_pdf_index(self) -> Dict[str, str]:
@@ -241,7 +267,12 @@ Context from PDF:
         Returns:
             Dict containing status message
         """
-        self.vector_db = VectorDatabase(embedding_model=self.embedding_model)
+        # Reset vector database if it exists
+        if self.embedding_model is not None:
+            self.vector_db = VectorDatabase(embedding_model=self.embedding_model)
+        else:
+            self.vector_db = None
+            
         self.current_pdf_info = None
         self.is_indexed = False
         
