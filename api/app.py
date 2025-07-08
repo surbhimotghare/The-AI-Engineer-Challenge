@@ -7,7 +7,13 @@ from pydantic import BaseModel, Field
 # Import OpenAI client for interacting with OpenAI's API
 from openai import OpenAI
 import os
+import sys
 from typing import Optional, Dict, Any, List
+
+# Add current directory to Python path to ensure local imports work
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
 
 # Test endpoint first - simple response without complex imports
 app = FastAPI(
@@ -33,6 +39,12 @@ async def test_endpoint():
 # Try to import RAG service functions with error handling
 RAG_IMPORT_ERROR = None
 try:
+    # Debug: Check current directory and available files
+    import os
+    current_dir = os.getcwd()
+    files_in_dir = os.listdir('.')
+    
+    # Try to import rag_service
     from rag_service import (
         upload_pdf, 
         query_pdf, 
@@ -41,9 +53,19 @@ try:
         clear_pdf_index
     )
     RAG_IMPORTS_SUCCESS = True
+    RAG_DEBUG_INFO = {
+        "current_dir": current_dir,
+        "files_in_dir": files_in_dir,
+        "rag_service_found": "rag_service.py" in files_in_dir
+    }
 except Exception as e:
     RAG_IMPORTS_SUCCESS = False
     RAG_IMPORT_ERROR = str(e)
+    RAG_DEBUG_INFO = {
+        "current_dir": current_dir if 'current_dir' in locals() else "unknown",
+        "files_in_dir": files_in_dir if 'files_in_dir' in locals() else [],
+        "rag_service_found": "rag_service.py" in (files_in_dir if 'files_in_dir' in locals() else [])
+    }
 
 @app.get("/api/debug")
 async def debug_endpoint():
@@ -51,6 +73,7 @@ async def debug_endpoint():
     return {
         "rag_imports_success": RAG_IMPORTS_SUCCESS,
         "rag_import_error": RAG_IMPORT_ERROR,
+        "debug_info": RAG_DEBUG_INFO,
         "python_version": "3.9+",
         "fastapi_working": True
     }
