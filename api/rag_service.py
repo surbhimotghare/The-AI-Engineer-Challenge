@@ -22,10 +22,8 @@ from typing import List, Optional, Dict, Any, AsyncGenerator
 from pathlib import Path
 from fastapi import UploadFile, HTTPException
 
-# Import aimakerspace utilities
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
+# Import aimakerspace utilities from local directory
+# The aimakerspace library is in api/aimakerspace/, same directory as this file
 from aimakerspace.text_utils import PDFLoader, CharacterTextSplitter
 from aimakerspace.vectordatabase import VectorDatabase
 from aimakerspace.openai_utils.embedding import EmbeddingModel
