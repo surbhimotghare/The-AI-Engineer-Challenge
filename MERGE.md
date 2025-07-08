@@ -5,8 +5,7 @@
 | Branch Name | Feature Summary | Status | Key Changes | Ready to Merge |
 |-------------|----------------|--------|-------------|----------------|
 | `single-pdf-rag` | Single PDF Upload & RAG Chat | ✅ **COMPLETE** | Single PDF processing, RAG chat system, deployed on Vercel | ✅ Yes |
-| `multi-file-rag` | Multi-File RAG System (CoursePilot) | 🚀 **PRODUCTION READY** | **8 file types** (PDF, PPTX, PPT, TXT, PNG, JPG, CSV)<br>**Educational AI chat** with source attribution<br>**Materials management** with upload/delete<br>**Full CoursePilot interface** with tabs<br>**All bugs fixed** - ready for deployment | 🚀 **READY** |
-| `multi-pdf-rag` | [Future Enhancement] Multiple PDF Support | 📋 Planned | Multiple PDF management & cross-document search | ❌ No |
+| `multi-file-rag` | Multi-File RAG System (CoursePilot) | 🚀 **PRODUCTION READY** | **Educational AI chat** with 8 filetypes (PDF, PPTX, PPT, TXT, PNG, JPG, CSV) | 🚀 **READY** |
 | `enhanced-rag-features` | [Future Enhancement] Advanced RAG Features | 📋 Planned | Source attribution, re-ranking, highlighted sections | ❌ No |
 
 ## 🛠️ Standard Merge Process
