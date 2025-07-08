@@ -152,6 +152,27 @@ export default function CoursePilot({ className }: CoursePilotProps) {
   return (
     <Container maxW="container.xl" py={6} className={className}>
       <VStack spacing={6} align="stretch">
+        {/* API Key Configuration Banner */}
+        {!apiKey && (
+          <Alert status="warning" borderRadius="lg" shadow="md">
+            <AlertIcon />
+            <Box flex="1">
+              <AlertTitle>🔑 API Key Required</AlertTitle>
+              <AlertDescription>
+                CoursePilot needs an OpenAI API key to process course materials and provide educational assistance.
+              </AlertDescription>
+            </Box>
+            <Button
+              colorScheme="blue"
+              size="md"
+              onClick={() => setShowApiKeyModal(true)}
+              leftIcon={<FiSettings />}
+            >
+              Configure API Key
+            </Button>
+          </Alert>
+        )}
+
         {/* Header */}
         <Card bg={cardBg} shadow="lg" borderWidth="1px" borderColor={borderColor}>
           <CardBody>
@@ -181,15 +202,25 @@ export default function CoursePilot({ className }: CoursePilotProps) {
                 >
                   {getStatusText(courseStatus)}
                 </Badge>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  leftIcon={<FiSettings />}
-                  onClick={resetApiKey}
-                  colorScheme="gray"
-                >
-                  API Settings
-                </Button>
+                <HStack spacing={2}>
+                  <Badge 
+                    colorScheme={apiKey ? 'green' : 'red'} 
+                    variant="outline"
+                    px={2}
+                    py={1}
+                  >
+                    {apiKey ? '🔑 API Key Set' : '🔑 No API Key'}
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    leftIcon={<FiSettings />}
+                    onClick={resetApiKey}
+                    colorScheme="blue"
+                  >
+                    {apiKey ? 'Change API Key' : 'Set API Key'}
+                  </Button>
+                </HStack>
               </VStack>
             </Flex>
           </CardBody>
