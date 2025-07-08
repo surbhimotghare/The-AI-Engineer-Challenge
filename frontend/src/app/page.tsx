@@ -21,9 +21,9 @@ import {
 } from '@chakra-ui/react'
 import { FiBook, FiMessageCircle, FiSettings } from 'react-icons/fi'
 
-import PDFLibrary from '@/components/PDFLibrary'
-import ChatInterface from '@/components/ChatInterface'
-import APIKeyInput from '@/components/APIKeyInput'
+import PDFLibrary from '../components/PDFLibrary'
+import ChatInterface from '../components/ChatInterface'
+import APIKeyInput from '../components/APIKeyInput'
 
 export default function Home() {
   const [apiKey, setApiKey] = useState('')
@@ -142,31 +142,12 @@ export default function Home() {
                       </Badge>
                     </Box>
                   ) : (
-                    <VStack spacing={4} align="stretch">
-                      {/* Selected Documents Info */}
-                      <Box bg={useColorModeValue('blue.50', 'blue.900')} p={4} borderRadius="lg">
-                        <HStack justify="space-between" align="center">
-                          <VStack align="start" spacing={1}>
-                            <Text fontSize="sm" fontWeight="medium" color="blue.700">
-                              📚 Selected Documents ({selectedDocIds.length})
-                            </Text>
-                            <Text fontSize="xs" color="blue.600">
-                              Chat will search across all selected documents
-                            </Text>
-                          </VStack>
-                          <Badge colorScheme="blue">
-                            Multi-PDF RAG
-                          </Badge>
-                        </HStack>
-                      </Box>
-
-                      {/* Chat Interface */}
-                      <ChatInterface 
-                        apiKey={apiKey}
-                        selectedDocIds={selectedDocIds}
-                        onDocumentsChange={handleDocumentSelect}
-                      />
-                    </VStack>
+                    <ChatInterface
+                      apiKey={apiKey}
+                      selectedDocIds={selectedDocIds}
+                      onDocumentsChange={handleDocumentSelect}
+                      onApiKeyChange={handleApiKeyChange}
+                    />
                   )}
                 </TabPanel>
               </TabPanels>

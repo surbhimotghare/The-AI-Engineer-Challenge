@@ -23,8 +23,16 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Select,
+  Divider,
+  Heading,
+  Container,
+  Avatar,
+  ButtonGroup,
+  InputGroup,
+  InputRightElement,
 } from '@chakra-ui/react'
-import { FiSend, FiMessageCircle, FiSearch, FiBook } from 'react-icons/fi'
+import { FiSend, FiMessageCircle, FiSearch, FiBook, FiUsers, FiBookOpen, FiCheck, FiX } from 'react-icons/fi'
 
 interface Message {
   id: string
@@ -40,23 +48,39 @@ interface ChatInterfaceProps {
   apiKey: string
   selectedDocIds: string[]
   onDocumentsChange: (docIds: string[]) => void
+  onApiKeyChange?: (key: string) => void
 }
 
-export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChange }: ChatInterfaceProps) {
+const AVAILABLE_MODELS = [
+  { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
+  { value: 'gpt-4', label: 'GPT-4' },
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+]
+
+export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChange, onApiKeyChange }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [chatMode, setChatMode] = useState<'rag' | 'chat'>('rag')
-  const [systemMessage, setSystemMessage] = useState('You are a helpful AI assistant that provides clear and concise answers.')
+  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].value)
+  const [systemMessage, setSystemMessage] = useState('You are a wise, friendly librarian with extensive knowledge. You help patrons find information, answer questions, and provide thoughtful guidance. Use warm, welcoming language as if you\'re speaking to a visitor in your library.')
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const toast = useToast()
 
   // Librarian-themed colors
-  const bgColor = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'gray.600')
+  const bgGradient = useColorModeValue(
+    'linear(to-br, amber.50, orange.50, red.50)',
+    'linear(to-br, gray.900, amber.900, orange.900)'
+  )
+  const librarianCardBg = useColorModeValue('white', 'gray.800')
+  const librarianCardBorder = useColorModeValue('amber.200', 'amber.600')
+  const chatAreaBg = useColorModeValue('amber.25', 'gray.700')
+  const warmText = useColorModeValue('amber.800', 'amber.200')
+  const accentColor = useColorModeValue('amber.600', 'amber.400')
   const userMessageBg = useColorModeValue('blue.50', 'blue.900')
-  const assistantMessageBg = useColorModeValue('gray.50', 'gray.700')
+  const assistantMessageBg = useColorModeValue('amber.50', 'amber.900')
+  const ragMessageBg = useColorModeValue('green.50', 'green.900')
 
   // API base URL logic
   const getApiBaseUrl = () => {
@@ -147,7 +171,7 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
             developer_message: systemMessage,
             user_message: userMessage,
             api_key: apiKey,
-            model: 'gpt-4o-mini'
+            model: selectedModel
           }),
         })
 
@@ -188,7 +212,7 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
       )
       
       toast({
-        title: 'Chat Error',
+        title: 'Librarian Notice',
         description: errorMessage,
         status: 'error',
         duration: 5000,
@@ -212,7 +236,40 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
 
   const renderMessage = (message: Message) => {
     const isUser = message.sender === 'user'
-    const messageBg = isUser ? userMessageBg : assistantMessageBg
+    const isRAG = message.mode === 'rag' && message.sender === 'assistant'
+    
+    const messageBg = isUser 
+      ? userMessageBg 
+      : isRAG 
+        ? ragMessageBg 
+        : assistantMessageBg
+    
+    const borderColor = useColorModeValue(
+      isUser 
+        ? 'blue.200' 
+        : isRAG 
+          ? 'green.200' 
+          : 'amber.200',
+      isUser 
+        ? 'blue.700' 
+        : isRAG 
+          ? 'green.700' 
+          : 'amber.600'
+    )
+    
+    const textColor = useColorModeValue(
+      isUser 
+        ? 'blue.900' 
+        : isRAG 
+          ? 'green.900' 
+          : 'amber.900',
+      isUser 
+        ? 'blue.100' 
+        : isRAG 
+          ? 'green.100' 
+          : 'amber.100'
+    )
+
     const alignSelf = isUser ? 'flex-end' : 'flex-start'
     const maxW = '70%'
 
@@ -223,22 +280,30 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
         maxW={maxW}
         bg={messageBg}
         p={4}
-        borderRadius="lg"
+        borderRadius="xl"
         border="1px solid"
         borderColor={borderColor}
+        shadow="sm"
       >
         <VStack align="start" spacing={2}>
           {/* Message header */}
           <HStack spacing={2} w="full">
-            <Icon 
-              as={isUser ? FiMessageCircle : FiSearch} 
-              color={isUser ? 'blue.500' : 'green.500'} 
+            <Avatar 
+              size="xs" 
+              name={isUser ? "Visitor" : "Librarian"}
+              bg={isUser ? 'blue.500' : isRAG ? 'green.500' : accentColor}
+              color="white"
+              icon={<Icon as={isUser ? FiMessageCircle : isRAG ? FiBookOpen : FiBook} />}
             />
-            <Text fontSize="sm" fontWeight="medium">
-              {isUser ? 'You' : message.mode === 'rag' ? 'RAG Assistant' : 'AI Assistant'}
+            <Text fontSize="xs" fontWeight="medium" color={textColor}>
+              {isUser ? 'Library Visitor' : '📚 Digital Librarian'}
             </Text>
-            <Badge size="sm" colorScheme={message.mode === 'rag' ? 'green' : 'blue'}>
-              {message.mode.toUpperCase()}
+            <Badge 
+              size="sm" 
+              colorScheme={isUser ? 'blue' : isRAG ? 'green' : 'amber'}
+              variant="subtle"
+            >
+              {isUser ? 'Visitor' : isRAG ? 'Document Expert' : 'General Knowledge'}
             </Badge>
             <Text fontSize="xs" color="gray.500" ml="auto">
               {message.timestamp.toLocaleTimeString()}
@@ -246,25 +311,22 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
           </HStack>
 
           {/* Message content */}
-          <Text whiteSpace="pre-wrap">{message.content}</Text>
+          <Text whiteSpace="pre-wrap" color={textColor} lineHeight="1.6">
+            {message.content}
+          </Text>
 
           {/* RAG sources */}
-          {message.mode === 'rag' && message.sources && message.sources.length > 0 && (
-            <Box w="full" mt={2}>
-              <Text fontSize="xs" fontWeight="medium" color="gray.600" mb={1}>
-                📚 Sources ({message.sources.length}):
+          {isRAG && message.sources && message.sources.length > 0 && (
+            <Box w="full" pt={2}>
+              <Text fontSize="xs" color="gray.600" mb={1}>
+                📖 Sources from documents:
               </Text>
               <VStack align="start" spacing={1}>
-                {message.sources.slice(0, 3).map((source, index) => (
-                  <Text key={index} fontSize="xs" color="gray.500" noOfLines={2}>
-                    {source.substring(0, 150)}...
+                {message.sources.map((source, index) => (
+                  <Text key={index} fontSize="xs" color="gray.500" fontStyle="italic">
+                    • {source}
                   </Text>
                 ))}
-                {message.sources.length > 3 && (
-                  <Text fontSize="xs" color="gray.400">
-                    ... and {message.sources.length - 3} more sources
-                  </Text>
-                )}
               </VStack>
             </Box>
           )}
@@ -273,136 +335,204 @@ export default function ChatInterface({ apiKey, selectedDocIds, onDocumentsChang
     )
   }
 
-  return (
-    <Box h="600px" bg={bgColor} borderRadius="lg" border="1px solid" borderColor={borderColor}>
-      <VStack h="full" spacing={0}>
-        {/* Header */}
-        <Box w="full" p={4} borderBottom="1px solid" borderColor={borderColor}>
-          <HStack justify="space-between">
-            <HStack spacing={3}>
-              <Icon as={FiMessageCircle} color="blue.500" />
-              <Text fontWeight="medium">Chat Assistant</Text>
-              {selectedDocIds.length > 0 && (
-                <Badge colorScheme="green" size="sm">
-                  {selectedDocIds.length} doc{selectedDocIds.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
-            </HStack>
-            <Button size="sm" variant="ghost" onClick={clearChat}>
-              Clear Chat
+  const renderLibrarianHeader = () => (
+    <Box
+      bg={librarianCardBg}
+      borderRadius="xl"
+      p={6}
+      border="2px solid"
+      borderColor={librarianCardBorder}
+      shadow="lg"
+      mb={6}
+    >
+      <HStack spacing={4} align="center">
+        <Avatar
+          size="lg"
+          name="Library Assistant"
+          bg={accentColor}
+          color="white"
+          icon={<FiBook fontSize="1.5rem" />}
+        />
+        <VStack align="start" spacing={1}>
+          <Heading size="lg" color={warmText}>
+            📚 Digital Library Assistant
+          </Heading>
+          <Text color={useColorModeValue('gray.600', 'gray.300')} fontSize="md">
+            Your friendly neighborhood librarian, ready to help with research and questions
+          </Text>
+        </VStack>
+      </HStack>
+      
+      <Divider my={4} borderColor={librarianCardBorder} />
+      
+      <HStack justify="space-between" align="center">
+        <HStack spacing={4}>
+          <Select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            maxW="200px"
+            bg={useColorModeValue('white', 'gray.700')}
+            borderColor={useColorModeValue('amber.300', 'amber.600')}
+          >
+            {AVAILABLE_MODELS.map((model) => (
+              <option key={model.value} value={model.value}>
+                {model.label}
+              </option>
+            ))}
+          </Select>
+          <Button 
+            onClick={() => onApiKeyChange?.('')} 
+            size="md"
+            variant={apiKey ? "outline" : "solid"}
+            colorScheme={apiKey ? "green" : "amber"}
+            leftIcon={apiKey ? <Icon as={FiCheck} /> : <Icon as={FiX} />}
+            borderColor={apiKey ? "green.300" : "amber.300"}
+          >
+            {apiKey ? 'Library Access ✓' : 'Set Library Card'}
+          </Button>
+        </HStack>
+        
+        <ButtonGroup size="sm" isAttached variant="outline">
+          <Button
+            onClick={() => setChatMode('rag')}
+            colorScheme={chatMode === 'rag' ? 'green' : 'gray'}
+            leftIcon={<FiBookOpen />}
+            bg={chatMode === 'rag' ? 'green.100' : 'white'}
+            borderColor={chatMode === 'rag' ? 'green.300' : 'gray.300'}
+          >
+            Document Discussion
+          </Button>
+          <Button
+            onClick={() => setChatMode('chat')}
+            colorScheme={chatMode === 'chat' ? 'amber' : 'gray'}
+            leftIcon={<FiUsers />}
+            bg={chatMode === 'chat' ? 'amber.100' : 'white'}
+            borderColor={chatMode === 'chat' ? 'amber.300' : 'gray.300'}
+          >
+            General Inquiry
+          </Button>
+        </ButtonGroup>
+      </HStack>
+
+      {/* API Key Status Alert */}
+      {!apiKey && (
+        <Alert status="warning" borderRadius="md" mt={4} bg={useColorModeValue('orange.50', 'orange.900')}>
+          <AlertIcon />
+          <AlertDescription>
+            Please present your library card (API key) to access the digital collection. 
+            <Button
+              variant="link"
+              colorScheme="orange"
+              ml={2}
+              onClick={() => onApiKeyChange?.('')}
+              size="sm"
+            >
+              Get Library Card
             </Button>
-          </HStack>
-        </Box>
+          </AlertDescription>
+        </Alert>
+      )}
 
-        {/* Chat Mode Tabs */}
-        <Box w="full" px={4} pt={2}>
-          <Tabs size="sm" variant="enclosed" onChange={(index) => setChatMode(index === 0 ? 'rag' : 'chat')}>
-            <TabList>
-              <Tab>
-                <HStack spacing={1}>
-                  <Icon as={FiSearch} />
-                  <Text>RAG Mode</Text>
-                </HStack>
-              </Tab>
-              <Tab>
-                <HStack spacing={1}>
-                  <Icon as={FiMessageCircle} />
-                  <Text>Chat Mode</Text>
-                </HStack>
-              </Tab>
-            </TabList>
-          </Tabs>
-        </Box>
-
-        {/* Messages Area */}
-        <VStack 
-          flex={1} 
-          w="full" 
-          p={4} 
-          spacing={4} 
-          overflowY="auto"
-          align="stretch"
-        >
-          {messages.length === 0 ? (
-            <Box textAlign="center" py={8}>
-              <Icon as={FiMessageCircle} w={12} h={12} color="gray.400" mb={4} />
-              <Text color="gray.500" mb={2}>
-                {chatMode === 'rag' 
-                  ? 'Ask questions about your selected documents'
-                  : 'Start a conversation with the AI assistant'
-                }
-              </Text>
-              {chatMode === 'rag' && selectedDocIds.length === 0 && (
-                <Alert status="warning" size="sm">
-                  <AlertIcon />
-                  <AlertDescription>
-                    Select documents from the Document Library to use RAG mode
-                  </AlertDescription>
-                </Alert>
-              )}
-            </Box>
+      {/* Document Selection Status */}
+      {chatMode === 'rag' && (
+        <Box mt={4}>
+          {selectedDocIds.length > 0 ? (
+            <Alert status="success" borderRadius="md" bg={useColorModeValue('green.50', 'green.900')}>
+              <AlertIcon />
+              <AlertDescription>
+                📖 Ready to discuss {selectedDocIds.length} selected document{selectedDocIds.length !== 1 ? 's' : ''}
+              </AlertDescription>
+            </Alert>
           ) : (
-            messages.map(renderMessage)
+            <Alert status="warning" borderRadius="md" bg={useColorModeValue('orange.50', 'orange.900')}>
+              <AlertIcon />
+              <AlertDescription>
+                Please select documents from the Document Library to use RAG mode
+              </AlertDescription>
+            </Alert>
           )}
-          
-          {isLoading && (
-            <Box alignSelf="flex-start" maxW="70%">
-              <HStack spacing={2} p={4} bg={assistantMessageBg} borderRadius="lg">
-                <Icon as={FiSearch} color="green.500" />
-                <Text fontSize="sm" color="gray.600">
-                  {chatMode === 'rag' ? 'Searching documents...' : 'Thinking...'}
-                </Text>
-              </HStack>
+        </Box>
+      )}
+    </Box>
+  )
+
+  const getWelcomeMessage = () => {
+    if (chatMode === 'rag') {
+      return selectedDocIds.length > 0 
+        ? `I've reviewed your ${selectedDocIds.length} selected document${selectedDocIds.length !== 1 ? 's' : ''} and I'm ready to discuss their contents with you. What would you like to know?`
+        : 'Please select documents from the Document Library to discuss their contents together.'
+    } else {
+      return "Welcome to the library! I'm here to help with any questions you might have. Feel free to ask about any topic."
+    }
+  }
+
+  return (
+    <Box minH="100vh" bgGradient={bgGradient} p={6}>
+      <Container maxW="4xl">
+        {renderLibrarianHeader()}
+
+        <VStack
+          flex={1}
+          h="500px"
+          overflowY="auto"
+          spacing={4}
+          align="stretch"
+          p={4}
+          borderRadius="xl"
+          bg={chatAreaBg}
+          border="1px solid"
+          borderColor={librarianCardBorder}
+          shadow="inner"
+        >
+          {messages.length === 0 && (
+            <Box textAlign="center" py={8}>
+              <Icon as={FiBook} w={12} h={12} color={accentColor} mb={4} />
+              <Text color={warmText} fontSize="lg" fontWeight="medium">
+                {getWelcomeMessage()}
+              </Text>
             </Box>
           )}
           
+          {messages.map(renderMessage)}
           <div ref={messagesEndRef} />
         </VStack>
 
-        {/* Input Area */}
-        <Box w="full" p={4} borderTop="1px solid" borderColor={borderColor}>
-          <HStack spacing={3}>
-            <Textarea
+        <Box mt={4}>
+          <InputGroup size="lg">
+            <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={
                 chatMode === 'rag' 
-                  ? `Ask about your ${selectedDocIds.length} selected document${selectedDocIds.length !== 1 ? 's' : ''}...`
-                  : 'Type your message...'
+                  ? `Ask about your ${selectedDocIds.length} selected document${selectedDocIds.length !== 1 ? 's' : ''}... 📚`
+                  : 'Ask the librarian anything... 📚'
               }
-              resize="none"
-              rows={1}
               disabled={isLoading}
+              pr="5rem"
+              bg={useColorModeValue('white', 'gray.700')}
+              borderColor={useColorModeValue('amber.300', 'amber.600')}
+              focusBorderColor={useColorModeValue('amber.500', 'amber.400')}
+              borderRadius="xl"
+              shadow="sm"
             />
-            <Button
-              colorScheme="blue"
-              onClick={handleSendMessage}
-              isLoading={isLoading}
-              disabled={!inputValue.trim()}
-              px={6}
-            >
-              <Icon as={FiSend} />
-            </Button>
-          </HStack>
-          
-          {chatMode === 'chat' && (
-            <Box mt={2}>
-              <Text fontSize="xs" color="gray.500" mb={1}>
-                System Message:
-              </Text>
-              <Textarea
-                value={systemMessage}
-                onChange={(e) => setSystemMessage(e.target.value)}
+            <InputRightElement width="5rem">
+              <Button
+                h="2rem"
                 size="sm"
-                placeholder="Set the AI's personality and behavior..."
-                resize="none"
-                rows={2}
-              />
-            </Box>
-          )}
+                onClick={handleSendMessage}
+                isLoading={isLoading}
+                disabled={!inputValue.trim() || isLoading}
+                colorScheme="amber"
+                borderRadius="lg"
+                loadingText="..."
+              >
+                📤 Send
+              </Button>
+            </InputRightElement>
+          </InputGroup>
         </Box>
-      </VStack>
+      </Container>
     </Box>
   )
 } 
