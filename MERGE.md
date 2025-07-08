@@ -4,7 +4,7 @@
 
 | Branch Name | Feature Summary | Status | Key Changes | Ready to Merge |
 |-------------|----------------|--------|-------------|----------------|
-| `single-pdf-rag` | Single PDF Upload & RAG Chat System | ✅ Complete | Backend: RAG service + 5 API endpoints<br>Frontend: PDF upload + dual chat modes<br>Dependencies: PyPDF2, numpy, react-icons<br>Limitation: One PDF at a time | ✅ Yes |
+| `single-pdf-rag` | Single PDF Upload & RAG Chat System | ✅ **WORKING** | Backend: RAG service + 5 API endpoints<br>Frontend: PDF upload + dual chat modes<br>Dependencies: PyPDF2, numpy, react-icons<br>**Deployment: Fully deployed on Vercel**<br>**Status: All features functional** | ✅ Yes |
 | `multi-pdf-rag` | [Future Enhancement] Multiple PDF Support | 📋 Planned | [Multiple PDF management & cross-document search] | ❌ No |
 | `enhanced-rag-features` | [Future Enhancement] Advanced RAG Features | 📋 Planned | [Source attribution, re-ranking, highlighted sections] | ❌ No |
 
@@ -42,6 +42,7 @@ git push origin --delete <branch-name>
 
 | Status | Meaning |
 |--------|---------|
+| ✅ **WORKING** | Feature fully implemented, tested, and deployed |
 | ✅ Complete | Feature fully implemented and tested |
 | 🚧 In Progress | Active development ongoing |
 | 📋 Planned | Feature planned but not started |
@@ -57,6 +58,7 @@ Before merging any branch:
 - [ ] Dependencies added to requirements
 - [ ] No breaking changes
 - [ ] Feature fully tested
+- [ ] **Deployment verified (if applicable)**
 
 ---
 
