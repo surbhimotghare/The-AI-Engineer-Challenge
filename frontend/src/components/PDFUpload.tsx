@@ -139,9 +139,18 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
       formData.append('file', file)
       formData.append('api_key', apiKey.trim())
 
-      const API_BASE_URL = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) 
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') 
-        : 'http://localhost:8000'
+      // Use the same API base URL logic as the main API file
+      const getApiBaseUrl = () => {
+        // In development, use localhost:8000
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          return 'http://localhost:8000'
+        }
+        
+        // In production, use relative URLs (empty string)
+        return ''
+      }
+      
+      const API_BASE_URL = getApiBaseUrl()
       
       // Simulate progress for upload phase
       setUploadState(prev => ({ ...prev, progress: 30 }))
@@ -210,9 +219,18 @@ export default function PDFUpload({ apiKey, onUploadSuccess, onUploadError }: PD
 
   const handleClearPDF = async () => {
     try {
-      const API_BASE_URL = (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) 
-        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '') 
-        : 'http://localhost:8000'
+      // Use the same API base URL logic as the upload function
+      const getApiBaseUrl = () => {
+        // In development, use localhost:8000
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          return 'http://localhost:8000'
+        }
+        
+        // In production, use relative URLs (empty string)
+        return ''
+      }
+      
+      const API_BASE_URL = getApiBaseUrl()
       
       const response = await fetch(`${API_BASE_URL}/api/clear-pdf`, {
         method: 'DELETE',
