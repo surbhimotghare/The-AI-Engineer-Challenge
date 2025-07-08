@@ -61,6 +61,7 @@ interface MultiFileUploadProps {
 const SUPPORTED_FILE_TYPES = {
   'application/pdf': { icon: FiFile, label: 'PDF', color: 'red', description: 'Research papers, syllabi, readings' },
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': { icon: FiMonitor, label: 'PPTX', color: 'orange', description: 'Lecture slides, presentations' },
+  'application/vnd.ms-powerpoint': { icon: FiMonitor, label: 'PPT', color: 'orange', description: 'Legacy PowerPoint presentations' },
   'text/plain': { icon: FiFileText, label: 'TXT', color: 'blue', description: 'Notes, outlines, reading lists' },
   'image/png': { icon: FiImage, label: 'PNG', color: 'green', description: 'Charts, diagrams, screenshots' },
   'image/jpeg': { icon: FiImage, label: 'JPG', color: 'green', description: 'Photos, diagrams, graphs' },
@@ -100,7 +101,7 @@ export default function MultiFileUpload({ apiKey, onUploadComplete, onError }: M
 
   const validateFile = (file: File): string | null => {
     if (!Object.keys(SUPPORTED_FILE_TYPES).includes(file.type)) {
-      return `Unsupported file type: ${file.type}. Please upload PDF, PPTX, TXT, PNG, JPG, or CSV files.`;
+      return `Unsupported file type: ${file.type}. Please upload PDF, PPTX, PPT, TXT, PNG, JPG, or CSV files.`;
     }
     
     if (file.size > MAX_FILE_SIZE) {
@@ -335,7 +336,7 @@ export default function MultiFileUpload({ apiKey, onUploadComplete, onError }: M
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".pdf,.pptx,.txt,.png,.jpg,.jpeg,.csv"
+              accept=".pdf,.pptx,.txt,.png,.jpg,.jpeg,.csv,.ppt"
               onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
               style={{ display: 'none' }}
             />
@@ -350,7 +351,7 @@ export default function MultiFileUpload({ apiKey, onUploadComplete, onError }: M
                   Drag and drop files here, or click to select
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  PDF, PPTX, TXT, PNG, JPG, CSV • Max 50MB each
+                  PDF, PPTX, PPT, TXT, PNG, JPG, CSV • Max 50MB each
                 </Text>
               </VStack>
             </VStack>
