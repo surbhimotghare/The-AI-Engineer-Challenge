@@ -9,56 +9,51 @@ from openai import OpenAI
 import os
 from typing import Optional, Dict, Any, List
 
-# Import RAG service functions
-from rag_service import (
-    upload_pdf, 
-    query_pdf, 
-    stream_query_pdf,
-    get_pdf_status,
-    clear_pdf_index
-)
-
-# Initialize FastAPI application with comprehensive metadata
+# Test endpoint first - simple response without complex imports
 app = FastAPI(
     title="AI RAG Chat API",
-    description="""
-    A comprehensive Retrieval-Augmented Generation (RAG) API that combines traditional chat capabilities 
-    with PDF document analysis and question-answering.
-    
-    ## Features
-    
-    * **Traditional Chat**: OpenAI-powered chat with custom system messages
-    * **PDF Upload & Processing**: Extract text from PDFs and create searchable vector embeddings
-    * **RAG Chat**: Answer questions based on uploaded PDF content with source attribution
-    * **Streaming Responses**: Real-time response delivery for both chat modes
-    * **Document Management**: Status tracking and index management for uploaded PDFs
-    
-    ## Workflow
-    
-    1. **Upload PDF**: Use `/api/upload-pdf` to process and index your document
-    2. **Check Status**: Verify indexing completion with `/api/pdf-status`
-    3. **Chat with PDF**: Ask questions about your document using `/api/rag-chat`
-    4. **Manage Documents**: Clear indexes and start over with `/api/clear-pdf`
-    """,
-    version="1.0.0",
-    contact={
-        "name": "AI RAG Chat API",
-        "email": "support@example.com",
-    },
-    license_info={
-        "name": "MIT",
-        "url": "https://opensource.org/licenses/MIT",
-    },
+    description="A comprehensive RAG API with PDF processing",
+    version="1.0.0"
 )
 
-# Configure CORS middleware with documentation
+# Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/api/test")
+async def test_endpoint():
+    """Simple test endpoint to verify basic functionality."""
+    return {"status": "ok", "message": "Backend is working", "test": True}
+
+# Try to import RAG service functions with error handling
+RAG_IMPORT_ERROR = None
+try:
+    from rag_service import (
+        upload_pdf, 
+        query_pdf, 
+        stream_query_pdf,
+        get_pdf_status,
+        clear_pdf_index
+    )
+    RAG_IMPORTS_SUCCESS = True
+except Exception as e:
+    RAG_IMPORTS_SUCCESS = False
+    RAG_IMPORT_ERROR = str(e)
+
+@app.get("/api/debug")
+async def debug_endpoint():
+    """Debug endpoint to check import status."""
+    return {
+        "rag_imports_success": RAG_IMPORTS_SUCCESS,
+        "rag_import_error": RAG_IMPORT_ERROR,
+        "python_version": "3.9+",
+        "fastapi_working": True
+    }
 
 # Enhanced Pydantic models with comprehensive documentation
 class ChatRequest(BaseModel):
@@ -247,6 +242,12 @@ async def upload_pdf_endpoint(
     - PDF information (pages, chunks, text length)
     - Vector database statistics
     """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
     try:
         # Set the OpenAI API key in environment for RAG service
         os.environ["OPENAI_API_KEY"] = api_key
@@ -289,6 +290,12 @@ async def rag_chat(request: RAGChatRequest):
     - Streaming text response based on PDF content
     - Will indicate if no relevant information is found
     """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
     try:
         os.environ["OPENAI_API_KEY"] = request.api_key
         
@@ -336,6 +343,12 @@ async def rag_chat_complete(request: RAGChatRequest):
     - Verifying source attribution
     - Applications requiring complete responses
     """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
     try:
         os.environ["OPENAI_API_KEY"] = request.api_key
         
@@ -376,6 +389,12 @@ async def pdf_status():
     - `is_indexed: false` - No PDF uploaded or processing failed
     - `vector_db_size: 0` - No indexed content available
     """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
     try:
         result = get_pdf_status()
         return PDFStatusResponse(**result)
@@ -415,6 +434,12 @@ async def clear_pdf():
     
     **Note:** This operation cannot be undone.
     """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
     try:
         result = clear_pdf_index()
         return ClearResponse(**result)
