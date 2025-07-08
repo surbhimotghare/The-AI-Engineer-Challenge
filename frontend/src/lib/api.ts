@@ -2,12 +2,18 @@
 
 // API Base URL Configuration
 const getApiBaseUrl = () => {
-  // In production, use relative URLs (same domain)
-  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+  // In development, use localhost:8000
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    return 'http://localhost:8000';
+  }
+  
+  // In production, use relative URLs (same domain) - this prevents CORS issues
+  if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
   }
-  // In development, use localhost:8000
-  return 'http://localhost:8000';
+  
+  // Default to relative URLs for production deployment
+  return '';
 };
 
 const API_BASE_URL = getApiBaseUrl();
