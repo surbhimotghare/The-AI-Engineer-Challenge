@@ -50,7 +50,10 @@ try:
         query_pdf, 
         stream_query_pdf,
         get_pdf_status,
-        clear_pdf_index
+        clear_pdf_index,
+        list_documents,
+        get_document,
+        delete_document
     )
     RAG_IMPORTS_SUCCESS = True
     RAG_DEBUG_INFO = {
@@ -110,8 +113,8 @@ class RAGChatRequest(BaseModel):
     
     question: str = Field(
         ...,
-        description="Question to ask about the uploaded PDF document",
-        example="What are the main topics covered in this document?"
+        description="Question to ask about the uploaded PDF documents",
+        example="What are the main topics covered in these documents?"
     )
     k: Optional[int] = Field(
         default=5,
@@ -119,6 +122,11 @@ class RAGChatRequest(BaseModel):
         example=5,
         ge=1,
         le=10
+    )
+    doc_ids: Optional[List[str]] = Field(
+        default=None,
+        description="Optional list of document IDs to search within. If not provided, searches all documents.",
+        example=["doc-123", "doc-456"]
     )
     api_key: str = Field(
         ...,
@@ -129,11 +137,14 @@ class RAGChatRequest(BaseModel):
 class PDFInfo(BaseModel):
     """PDF document metadata."""
     
+    doc_id: str = Field(..., description="Unique document identifier")
     filename: str = Field(..., description="Original filename of the uploaded PDF")
     content_length: int = Field(..., description="File size in bytes")
     num_pages: int = Field(..., description="Number of pages in the PDF")
     num_chunks: int = Field(..., description="Number of text chunks created for indexing")
     total_text_length: int = Field(..., description="Total character count of extracted text")
+    uploaded_at: str = Field(..., description="ISO timestamp of when the document was uploaded")
+    chunk_ids: List[str] = Field(..., description="List of chunk IDs associated with this document")
 
 class PDFUploadResponse(BaseModel):
     """Response model for PDF upload and processing."""
@@ -145,9 +156,10 @@ class PDFUploadResponse(BaseModel):
 class PDFStatusResponse(BaseModel):
     """Response model for PDF processing status."""
     
-    is_indexed: bool = Field(..., description="Whether a PDF is currently indexed and ready for queries")
-    pdf_info: Optional[PDFInfo] = Field(None, description="PDF metadata if a document is indexed")
-    vector_db_size: int = Field(..., description="Number of text chunks in the vector database")
+    total_documents: int = Field(..., description="Number of indexed PDF documents")
+    documents: List[PDFInfo] = Field(..., description="List of PDF document metadata")
+    vector_db_size: int = Field(..., description="Total number of text chunks in the vector database")
+    is_indexed: bool = Field(..., description="Whether any PDFs are currently indexed")
 
 class RAGResponse(BaseModel):
     """Response model for RAG chat completion."""
@@ -156,6 +168,7 @@ class RAGResponse(BaseModel):
     sources: List[str] = Field(..., description="List of relevant text chunks used for context")
     context_used: bool = Field(..., description="Whether PDF context was found and used")
     num_sources: Optional[int] = Field(None, description="Number of source chunks retrieved")
+    searched_documents: Optional[List[str]] = Field(None, description="List of document IDs that were searched")
 
 class HealthResponse(BaseModel):
     """Health check response."""
@@ -164,6 +177,23 @@ class HealthResponse(BaseModel):
 
 class ClearResponse(BaseModel):
     """Response for PDF index clearing."""
+    
+    status: str = Field(..., description="Operation status", example="success")
+    message: str = Field(..., description="Operation result message")
+
+class DocumentListResponse(BaseModel):
+    """Response model for document listing."""
+    
+    documents: List[PDFInfo] = Field(..., description="List of uploaded PDF documents")
+    total_count: int = Field(..., description="Total number of documents")
+
+class DocumentResponse(BaseModel):
+    """Response model for single document retrieval."""
+    
+    document: PDFInfo = Field(..., description="PDF document metadata")
+
+class DeleteDocumentResponse(BaseModel):
+    """Response model for document deletion."""
     
     status: str = Field(..., description="Operation status", example="success")
     message: str = Field(..., description="Operation result message")
@@ -325,7 +355,7 @@ async def rag_chat(request: RAGChatRequest):
         os.environ["OPENAI_API_KEY"] = request.api_key
         
         async def generate_rag():
-            async for chunk in stream_query_pdf(request.question, request.k):
+            async for chunk in stream_query_pdf(request.question, request.k, request.doc_ids):
                 yield chunk
 
         return StreamingResponse(generate_rag(), media_type="text/plain")
@@ -377,7 +407,7 @@ async def rag_chat_complete(request: RAGChatRequest):
     try:
         os.environ["OPENAI_API_KEY"] = request.api_key
         
-        result = await query_pdf(request.question, request.k)
+        result = await query_pdf(request.question, request.k, request.doc_ids)
         return RAGResponse(**result)
     
     except Exception as e:
@@ -468,6 +498,122 @@ async def clear_pdf():
     try:
         result = clear_pdf_index()
         return ClearResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(
+    "/api/list-documents",
+    response_model=DocumentListResponse,
+    summary="List Uploaded PDFs",
+    description="""
+    Retrieve a list of all uploaded PDF documents.
+    
+    This endpoint returns a paginated list of documents,
+    including their unique IDs, filenames, and indexing status.
+    """,
+    response_description="List of uploaded PDF documents",
+    tags=["PDF Management"]
+)
+async def list_uploaded_documents():
+    """
+    Get a list of all uploaded PDF documents.
+    
+    **Returns:**
+    - A paginated list of documents
+    - Each document includes its ID, filename, and indexing status
+    - Supports pagination for large numbers of documents
+    """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
+    try:
+        documents = await list_documents()
+        return DocumentListResponse(documents=documents, total_count=len(documents))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(
+    "/api/get-document/{document_id}",
+    response_model=DocumentResponse,
+    summary="Get a Specific Uploaded PDF",
+    description="""
+    Retrieve detailed information about a specific uploaded PDF document
+    by its unique ID.
+    """,
+    response_description="Detailed information about a specific document",
+    tags=["PDF Management"]
+)
+async def get_uploaded_document(document_id: str):
+    """
+    Get detailed information about a specific uploaded PDF document.
+    
+    **Parameters:**
+    - **document_id**: The unique ID of the document to retrieve
+    
+    **Returns:**
+    - Full document metadata and processing details
+    - PDF filename
+    - Indexing status
+    - Vector database size
+    """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
+    try:
+        document = await get_document(document_id)
+        return DocumentResponse(document=document)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete(
+    "/api/delete-document/{document_id}",
+    response_model=DeleteDocumentResponse,
+    summary="Delete a Specific Uploaded PDF",
+    description="""
+    Delete a specific uploaded PDF document by its unique ID.
+    
+    This will:
+    - Remove the document from the system
+    - Clear its vector embeddings from the database
+    - Reset its indexing status
+    
+    **Note:** This operation cannot be undone.
+    """,
+    response_description="Confirmation of document deletion",
+    tags=["PDF Management"]
+)
+async def delete_uploaded_document(document_id: str):
+    """
+    Delete a specific uploaded PDF document.
+    
+    **Parameters:**
+    - **document_id**: The unique ID of the document to delete
+    
+    **Effect:**
+    - Removes the document from memory
+    - Clears its vector embeddings
+    - Resets indexing status to false
+    
+    **Use Cases:**
+    - Removing old or unused documents
+    - Cleaning up the system
+    - Managing document storage
+    """
+    if not RAG_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"RAG system not available: {RAG_IMPORT_ERROR}"
+        )
+    
+    try:
+        result = await delete_document(document_id)
+        return DeleteDocumentResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
