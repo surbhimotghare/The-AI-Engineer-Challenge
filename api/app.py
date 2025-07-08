@@ -42,7 +42,7 @@ MULTI_FILE_IMPORT_ERROR = None
 
 try:
     # Import original single-file RAG service
-    from api.rag_service import (
+    from rag_service import (
         upload_pdf, 
         query_pdf, 
         stream_query_pdf,
@@ -56,7 +56,7 @@ except Exception as e:
 
 try:
     # Import new multi-file RAG service
-    from api.multi_file_rag_service import (
+    from multi_file_rag_service import (
         upload_course_materials,
         query_course_materials,
         stream_query_course_materials,
