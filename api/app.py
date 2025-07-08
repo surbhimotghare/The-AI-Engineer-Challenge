@@ -150,6 +150,16 @@ class ClearResponse(BaseModel):
 
 # API Endpoints with comprehensive documentation
 
+@app.get("/")
+async def root():
+    """Root endpoint for API information."""
+    return {
+        "message": "AI RAG Chat API",
+        "version": "1.0.0",
+        "status": "running",
+        "docs": "/docs"
+    }
+
 @app.post(
     "/api/chat",
     summary="Traditional Chat Completion",
