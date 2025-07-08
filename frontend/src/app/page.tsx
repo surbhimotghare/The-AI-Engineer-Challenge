@@ -1,30 +1,17 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Box, Container, Heading, VStack } from '@chakra-ui/react'
+import { Box, Container, VStack } from '@chakra-ui/react'
 
-// Dynamically import the Chat component with no SSR
-const Chat = dynamic(() => import('../components/Chat'), {
+// Dynamically import the CoursePilot component with no SSR
+const CoursePilot = dynamic(() => import('../components/CoursePilot'), {
   ssr: false
 })
 
 export default function HomePage() {
   return (
-    <Container maxW="container.xl" py={8}>
-      <VStack spacing={8} align="stretch">
-        <Heading as="h1" size="xl" textAlign="center">
-          AI Engineer Challenge
-        </Heading>
-        <Box
-          borderWidth="1px"
-          borderRadius="lg"
-          p={4}
-          bg="white"
-          boxShadow="sm"
-        >
-          <Chat />
-        </Box>
-      </VStack>
-    </Container>
+    <Box minH="100vh" bg="gray.50">
+      <CoursePilot />
+    </Box>
   )
 } 
