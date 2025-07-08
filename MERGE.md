@@ -4,8 +4,8 @@
 
 | Branch Name | Feature Summary | Status | Key Changes | Ready to Merge |
 |-------------|----------------|--------|-------------|----------------|
+| `multi-pdf-rag` | **Multiple PDF Support & Document Library** | ✅ **WORKING** | Backend: Multi-PDF RAG service + 8 API endpoints<br>Frontend: Document library + multi-select + management<br>Features: Cross-document search, document selection, delete<br>UI: Tabbed interface, card-based library, enhanced chat | ✅ Yes |
 | `single-pdf-rag` | Single PDF Upload & RAG Chat System | ✅ **WORKING** | Backend: RAG service + 5 API endpoints<br>Frontend: PDF upload + dual chat modes<br>Dependencies: PyPDF2, numpy, react-icons<br>**Deployment: Fully deployed on Vercel**<br>**Status: All features functional** | ✅ Yes |
-| `multi-pdf-rag` | [Future Enhancement] Multiple PDF Support | 📋 Planned | [Multiple PDF management & cross-document search] | ❌ No |
 | `enhanced-rag-features` | [Future Enhancement] Advanced RAG Features | 📋 Planned | [Source attribution, re-ranking, highlighted sections] | ❌ No |
 
 ## 🛠️ Standard Merge Process
