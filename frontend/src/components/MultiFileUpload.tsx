@@ -49,7 +49,7 @@ import {
   FiDatabase,
   FiInfo
 } from 'react-icons/fi';
-import { uploadCourseMaterials, getCourseStatus, clearCourseMaterials } from '../lib/api';
+import { uploadCourseMaterials, getCourseStatus } from '../lib/api';
 import type { CourseUploadResponse, CourseStatusResponse, FileInfo } from '../lib/api';
 
 interface MultiFileUploadProps {
@@ -231,28 +231,6 @@ export default function MultiFileUpload({ apiKey, onUploadComplete, onError }: M
     }
   };
 
-  const handleClearCourse = async () => {
-    try {
-      await clearCourseMaterials();
-      await loadCourseStatus();
-      toast({
-        title: 'Course Materials Cleared',
-        description: 'All course materials have been removed.',
-        status: 'info',
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: 'Clear Error',
-        description: 'Failed to clear course materials.',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
-
   const getFileIcon = (file: File) => {
     const fileType = SUPPORTED_FILE_TYPES[file.type as keyof typeof SUPPORTED_FILE_TYPES];
     return fileType ? fileType.icon : FiFile;
@@ -276,25 +254,12 @@ export default function MultiFileUpload({ apiKey, onUploadComplete, onError }: M
       {/* Header */}
       <Card bg={cardBg} shadow="sm">
         <CardHeader>
-          <Flex align="center" justify="space-between">
-            <HStack>
-              <Icon as={FiBook} boxSize={6} color="blue.500" />
-              <Heading size="md" color="blue.600">
-                CoursePilot - Upload Course Materials
-              </Heading>
-            </HStack>
-            {courseStatus?.is_indexed && (
-              <Button
-                size="sm"
-                colorScheme="red"
-                variant="ghost"
-                leftIcon={<FiTrash2 />}
-                onClick={handleClearCourse}
-              >
-                Clear Course
-              </Button>
-            )}
-          </Flex>
+          <HStack>
+            <Icon as={FiBook} boxSize={6} color="blue.500" />
+            <Heading size="md" color="blue.600">
+              CoursePilot - Upload Course Materials
+            </Heading>
+          </HStack>
         </CardHeader>
       </Card>
 

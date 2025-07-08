@@ -48,6 +48,7 @@ import {
 } from 'react-icons/fi';
 import MultiFileUpload from './MultiFileUpload';
 import CourseChat from './CourseChat';
+import CourseMaterialsList from './CourseMaterialsList';
 import ApiKeyModal from './ApiKeyModal';
 import { getCourseStatus } from '../lib/api';
 import type { CourseStatusResponse, CourseUploadResponse } from '../lib/api';
@@ -110,13 +111,13 @@ export default function CoursePilot({ className }: CoursePilotProps) {
     loadCourseStatus();
     toast({
       title: 'Upload Complete!',
-      description: `Successfully processed ${response.processed_files.length} files. Ready to chat!`,
+      description: `Successfully processed ${response.processed_files.length} files. View them in Manage Materials.`,
       status: 'success',
       duration: 5000,
       isClosable: true,
     });
-    // Switch to chat tab after successful upload
-    setActiveTab(1);
+    // Switch to manage materials tab after successful upload
+    setActiveTab(2);
   };
 
   const handleError = (error: string) => {
@@ -226,50 +227,6 @@ export default function CoursePilot({ className }: CoursePilotProps) {
           </CardBody>
         </Card>
 
-        {/* Course Status Overview */}
-        {courseStatus && (
-          <Card bg={cardBg} shadow="sm" borderWidth="1px" borderColor={borderColor}>
-            <CardBody>
-              <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6}>
-                <Stat>
-                  <StatLabel>Course Materials</StatLabel>
-                  <StatNumber>{courseStatus.total_files}</StatNumber>
-                  <StatHelpText>
-                    <Icon as={FiFileText} mr={1} />
-                    Files uploaded
-                  </StatHelpText>
-                </Stat>
-                <Stat>
-                  <StatLabel>Knowledge Base</StatLabel>
-                  <StatNumber>{courseStatus.vector_db_size}</StatNumber>
-                  <StatHelpText>
-                    <Icon as={FiDatabase} mr={1} />
-                    Indexed chunks
-                  </StatHelpText>
-                </Stat>
-                <Stat>
-                  <StatLabel>File Types</StatLabel>
-                  <StatNumber>{courseStatus.supported_file_types.length}</StatNumber>
-                  <StatHelpText>
-                    <Icon as={FiBookOpen} mr={1} />
-                    Supported formats
-                  </StatHelpText>
-                </Stat>
-                <Stat>
-                  <StatLabel>Teaching Status</StatLabel>
-                  <StatNumber color={courseStatus.is_indexed ? 'green.500' : 'gray.500'}>
-                    {courseStatus.is_indexed ? 'Active' : 'Inactive'}
-                  </StatNumber>
-                  <StatHelpText>
-                    <Icon as={FiTarget} mr={1} />
-                    {courseStatus.is_indexed ? 'Ready to help students' : 'Upload materials first'}
-                  </StatHelpText>
-                </Stat>
-              </SimpleGrid>
-            </CardBody>
-          </Card>
-        )}
-
         {/* Main Content Tabs */}
         <Card bg={cardBg} shadow="lg" borderWidth="1px" borderColor={borderColor}>
           <CardBody p={0}>
@@ -291,6 +248,12 @@ export default function CoursePilot({ className }: CoursePilotProps) {
                   <HStack>
                     <Icon as={FiMessageCircle} />
                     <Text>Educational Chat</Text>
+                  </HStack>
+                </Tab>
+                <Tab>
+                  <HStack>
+                    <Icon as={FiDatabase} />
+                    <Text>Manage Materials</Text>
                   </HStack>
                 </Tab>
               </TabList>
@@ -357,6 +320,26 @@ export default function CoursePilot({ className }: CoursePilotProps) {
                         isDisabled={!courseStatus?.is_indexed}
                       />
                     )}
+                  </VStack>
+                </TabPanel>
+
+                {/* Manage Materials Tab */}
+                <TabPanel p={6}>
+                  <VStack spacing={4} align="stretch">
+                    <Box>
+                      <Heading size="md" mb={2} color="blue.600">
+                        Course Materials Management
+                      </Heading>
+                      <Text color="gray.600" mb={6}>
+                        View, organize, and manage your uploaded course materials and processing status.
+                      </Text>
+                    </Box>
+                    
+                    <CourseMaterialsList
+                      courseStatus={courseStatus}
+                      onClearComplete={loadCourseStatus}
+                      onError={handleError}
+                    />
                   </VStack>
                 </TabPanel>
               </TabPanels>
