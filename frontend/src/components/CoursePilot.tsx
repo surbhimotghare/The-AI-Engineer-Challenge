@@ -63,6 +63,7 @@ export default function CoursePilot({ className }: CoursePilotProps) {
   const [courseStatus, setCourseStatus] = useState<CourseStatusResponse | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const toast = useToast();
 
   // Color mode values
@@ -109,6 +110,8 @@ export default function CoursePilot({ className }: CoursePilotProps) {
 
   const handleUploadComplete = (response: CourseUploadResponse) => {
     loadCourseStatus();
+    // Trigger refresh in CourseChat component
+    setRefreshTrigger(prev => prev + 1);
     toast({
       title: 'Upload Complete!',
       description: `Successfully processed ${response.processed_files.length} files. View them in Manage Materials.`,
@@ -134,6 +137,12 @@ export default function CoursePilot({ className }: CoursePilotProps) {
     localStorage.removeItem('openai_api_key');
     setApiKey('');
     setShowApiKeyModal(true);
+  };
+
+  const handleClearComplete = () => {
+    loadCourseStatus();
+    // Trigger refresh in CourseChat component
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const getStatusColor = (status: CourseStatusResponse | null) => {
@@ -318,6 +327,7 @@ export default function CoursePilot({ className }: CoursePilotProps) {
                         apiKey={apiKey}
                         onError={handleError}
                         isDisabled={!courseStatus?.is_indexed}
+                        refreshTrigger={refreshTrigger} // Pass refreshTrigger
                       />
                     )}
                   </VStack>
@@ -337,7 +347,7 @@ export default function CoursePilot({ className }: CoursePilotProps) {
                     
                     <CourseMaterialsList
                       courseStatus={courseStatus}
-                      onClearComplete={loadCourseStatus}
+                      onClearComplete={handleClearComplete} // Use handleClearComplete
                       onError={handleError}
                     />
                   </VStack>

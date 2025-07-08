@@ -68,6 +68,7 @@ interface CourseChatProps {
   apiKey: string;
   isDisabled?: boolean;
   onError?: (error: string) => void;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
 const EDUCATIONAL_PROMPTS = [
@@ -81,11 +82,13 @@ const EDUCATIONAL_PROMPTS = [
   "What questions should I ask myself to test my understanding?",
 ];
 
-export default function CourseChat({ apiKey, isDisabled, onError }: CourseChatProps) {
+export default function CourseChat({ apiKey, isDisabled, onError, refreshTrigger }: CourseChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [courseStatus, setCourseStatus] = useState<CourseStatusResponse | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true); // Add loading state
+  const [statusLoadError, setStatusLoadError] = useState<string | null>(null); // Add error state
   const [showSources, setShowSources] = useState<Record<string, boolean>>({});
   const [currentStreamingId, setCurrentStreamingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -101,16 +104,36 @@ export default function CourseChat({ apiKey, isDisabled, onError }: CourseChatPr
     loadCourseStatus();
   }, []);
 
+  // Add effect to refresh when parent triggers update
+  useEffect(() => {
+    if (refreshTrigger) {
+      loadCourseStatus();
+    }
+  }, [refreshTrigger]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   const loadCourseStatus = async () => {
     try {
+      setIsLoadingStatus(true);
+      setStatusLoadError(null);
       const status = await getCourseStatus();
       setCourseStatus(status);
     } catch (error) {
       console.error('Error loading course status:', error);
+      setStatusLoadError('Failed to load course status');
+      // Set a default empty state so UI doesn't stay loading
+      setCourseStatus({
+        is_indexed: false,
+        total_files: 0,
+        course_materials: {},
+        vector_db_size: 0,
+        supported_file_types: []
+      });
+    } finally {
+      setIsLoadingStatus(false);
     }
   };
 
@@ -274,13 +297,44 @@ export default function CourseChat({ apiKey, isDisabled, onError }: CourseChatPr
       ));
   };
 
-  if (!courseStatus) {
+  if (isLoadingStatus) {
     return (
       <Card bg={cardBg} shadow="sm">
         <CardBody>
           <Flex align="center" justify="center" py={8}>
             <Spinner size="lg" color="blue.500" />
             <Text ml={4}>Loading course status...</Text>
+          </Flex>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (statusLoadError) {
+    return (
+      <Card bg={cardBg} shadow="sm">
+        <CardBody>
+          <Alert status="error" borderRadius="md">
+            <AlertIcon />
+            <Box>
+              <AlertTitle>Failed to Load Course Status</AlertTitle>
+              <AlertDescription>
+                {statusLoadError}. Please try again later or check your API key.
+              </AlertDescription>
+            </Box>
+          </Alert>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  if (!courseStatus) {
+    return (
+      <Card bg={cardBg} shadow="sm">
+        <CardBody>
+          <Flex align="center" justify="center" py={8}>
+            <Spinner size="lg" color="blue.500" />
+            <Text ml={4}>No course status data available.</Text>
           </Flex>
         </CardBody>
       </Card>
