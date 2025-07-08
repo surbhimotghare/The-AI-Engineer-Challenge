@@ -1,0 +1,32 @@
+CS 101: Introduction to Computer Science
+Fall 2024 - Professor Smith
+
+COURSE DESCRIPTION:
+This course provides an introduction to computer science concepts including programming fundamentals, data structures, and algorithms.
+
+LEARNING OBJECTIVES:
+1. Understand basic programming concepts
+2. Learn problem-solving techniques
+3. Master fundamental data structures
+4. Analyze algorithm efficiency
+
+TOPICS COVERED:
+- Variables and data types
+- Control structures (loops, conditionals)
+- Functions and procedures
+- Arrays and lists
+- Object-oriented programming basics
+- Sorting and searching algorithms
+- Time complexity analysis
+
+ASSIGNMENTS:
+- Weekly programming assignments (40%)
+- Midterm exam (25%)
+- Final project (35%)
+
+TEXTBOOK:
+"Introduction to Computer Science" by John Doe, 3rd Edition
+
+OFFICE HOURS:
+Monday/Wednesday 2:00-4:00 PM
+Location: Room 123, Computer Science Building 

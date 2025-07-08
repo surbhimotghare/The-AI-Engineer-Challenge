@@ -395,7 +395,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             
             # Index all chunks in vector database
             if all_chunks:
-                self.vector_db.insert_texts(all_chunks)
+                self.vector_db = await self.vector_db.abuild_from_list(all_chunks)
                 self.is_indexed = True
             
             # Prepare response
@@ -436,7 +436,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             self._ensure_models_initialized()
             
             # Retrieve relevant context
-            relevant_chunks = self.vector_db.search_by_text(question, k=k)
+            relevant_chunks = self.vector_db.search_by_text(question, k=k, return_as_text=True)
             
             if not relevant_chunks:
                 return {
@@ -454,7 +454,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             system_message = self.system_prompt.create_message(context=context)
             user_message = self.user_prompt.create_message(question=question)
             
-            response = self.chat_model.invoke([system_message, user_message])
+            response = self.chat_model.run([system_message, user_message])
             
             # Extract sources from chunks
             sources = []
@@ -464,7 +464,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                     sources.append(source_line.replace("[Source: ", "").replace("]", ""))
             
             return {
-                "answer": response.content,
+                "answer": response,
                 "sources": list(set(sources)),  # Remove duplicates
                 "context_used": True,
                 "num_sources": len(relevant_chunks),
@@ -494,7 +494,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             self._ensure_models_initialized()
             
             # Retrieve relevant context
-            relevant_chunks = self.vector_db.search_by_text(question, k=k)
+            relevant_chunks = self.vector_db.search_by_text(question, k=k, return_as_text=True)
             
             if not relevant_chunks:
                 yield "📚 I don't have relevant information about that topic in the uploaded course materials. "
@@ -509,8 +509,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             user_message = self.user_prompt.create_message(question=question)
             
             async for chunk in self.chat_model.astream([system_message, user_message]):
-                if chunk.content:
-                    yield chunk.content
+                yield chunk
                     
         except Exception as e:
             yield f"❌ Error processing your question: {str(e)}"
