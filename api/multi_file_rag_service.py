@@ -366,6 +366,35 @@ class TXTProcessor(FileProcessor):
             raise HTTPException(status_code=400, detail=f"Text file processing failed: {str(e)}")
 
 
+class SimpleTextSplitter:
+    """Simple fallback text splitter for when aimakerspace fails"""
+    
+    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        
+    def split_texts(self, texts: List[str]) -> List[str]:
+        """Split a list of texts into chunks"""
+        chunks = []
+        for text in texts:
+            chunks.extend(self.split(text))
+        return chunks
+    
+    def split(self, text: str) -> List[str]:
+        """Split a single text into chunks"""
+        if not isinstance(text, str):
+            text = str(text)
+        
+        chunks = []
+        step = self.chunk_size - self.chunk_overlap
+        
+        for i in range(0, len(text), step):
+            chunk = text[i:i + self.chunk_size]
+            if chunk.strip():  # Only add non-empty chunks
+                chunks.append(chunk)
+        return chunks
+
+
 class MultiFileRAGManager:
     """
     Enhanced RAG Manager for Multiple File Types in Educational Context
@@ -540,8 +569,31 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                     
                     print(f"After validation - Documents type: {type(documents)}, Length: {len(documents)}")
                     
+                    # Additional debugging for split_texts
+                    print(f"About to call split_texts with documents:")
+                    for i, doc in enumerate(documents):
+                        print(f"  Document {i}: type={type(doc)}, length={len(doc) if hasattr(doc, '__len__') else 'N/A'}")
+                        if isinstance(doc, str):
+                            print(f"    First 100 chars: {repr(doc[:100])}")
+                        else:
+                            print(f"    Value: {repr(doc)}")
+                    
+                    # Validate that all documents are strings
+                    if not all(isinstance(doc, str) for doc in documents):
+                        raise ValueError("All documents must be strings for text splitting")
+                    
                     # Split documents into chunks
-                    file_chunks = self.text_splitter.split_texts(documents)
+                    try:
+                        file_chunks = self.text_splitter.split_texts(documents)
+                        print(f"Successfully split into {len(file_chunks)} chunks")
+                    except Exception as split_error:
+                        print(f"Error during text splitting: {str(split_error)}")
+                        print(f"Error type: {type(split_error)}")
+                        # Fallback to SimpleTextSplitter if CharacterTextSplitter fails
+                        print("Falling back to SimpleTextSplitter due to CharacterTextSplitter error.")
+                        simple_splitter = SimpleTextSplitter(chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
+                        file_chunks = simple_splitter.split_texts(documents)
+                        print(f"Successfully split into {len(file_chunks)} chunks using SimpleTextSplitter")
                     
                     # Add source attribution to chunks
                     attributed_chunks = []
