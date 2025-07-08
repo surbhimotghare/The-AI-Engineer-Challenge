@@ -442,6 +442,10 @@ class MultiFileRAGManager:
         self.course_materials: Dict[str, Dict[str, Any]] = {}
         self.is_indexed: bool = False
         
+        # Enhanced chunk tracking for selective deletion
+        self.file_chunks: Dict[str, List[str]] = {}  # filename -> list of chunks
+        self.chunk_to_file: Dict[int, str] = {}  # chunk_index -> filename
+        
         # File processors
         self.processors = {
             'pdf': PDFProcessor(),
@@ -601,6 +605,9 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                         attributed_chunk = f"[Source: {file.filename}]\n{chunk}"
                         attributed_chunks.append(attributed_chunk)
                     
+                    # Track chunks for this specific file
+                    self.file_chunks[file.filename] = attributed_chunks
+                    
                     all_chunks.extend(attributed_chunks)
                     
                     # Store file metadata
@@ -626,8 +633,17 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             
             # Index all chunks in vector database
             if all_chunks:
+                # Build mapping from chunk index to filename
+                chunk_index = 0
+                for filename in self.file_chunks:
+                    file_chunks_count = len(self.file_chunks[filename])
+                    for i in range(file_chunks_count):
+                        self.chunk_to_file[chunk_index] = filename
+                        chunk_index += 1
+                
                 self.vector_db = await self.vector_db.abuild_from_list(all_chunks)
                 self.is_indexed = True
+                print(f"Vector database built with {len(all_chunks)} chunks from {len(self.file_chunks)} files")
             
             # Prepare response
             successful_files = [f for f in processed_files if "error" not in f]
@@ -758,6 +774,8 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
     def clear_course_materials(self) -> Dict[str, str]:
         """Clear all course materials and reset system"""
         self.course_materials = {}
+        self.file_chunks = {}
+        self.chunk_to_file = {}
         self.is_indexed = False
         
         if self.vector_db:
@@ -769,7 +787,7 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
         }
     
     async def delete_individual_file(self, filename: str) -> Dict[str, Any]:
-        """Delete a specific file from course materials and rebuild vector database"""
+        """Delete a specific file from course materials and selectively remove its chunks"""
         try:
             # Check if file exists
             if filename not in self.course_materials:
@@ -784,8 +802,11 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
             # If no files left, clear everything
             if not self.course_materials:
                 self.is_indexed = False
+                self.file_chunks = {}
+                self.chunk_to_file = {}
                 if self.vector_db:
                     self.vector_db.vectors = []
+                print(f"No files remaining after deleting '{filename}'. System cleared.")
                 return {
                     "status": "success",
                     "message": f"File '{filename}' deleted. No course materials remaining.",
@@ -794,13 +815,14 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                     "is_indexed": False
                 }
             
-            # Rebuild vector database with remaining files
-            # This is necessary because we can't easily remove specific chunks
-            await self._rebuild_vector_database()
+            # Remove chunks for this file and rebuild vector database efficiently
+            await self._remove_file_chunks_and_rebuild(filename)
+            
+            print(f"File '{filename}' deleted. Remaining files: {list(self.course_materials.keys())}")
             
             return {
                 "status": "success",
-                "message": f"File '{filename}' deleted successfully. Vector database rebuilt with remaining files.",
+                "message": f"File '{filename}' deleted successfully. Remaining files are still indexed and searchable.",
                 "removed_file": removed_file,
                 "remaining_files": len(self.course_materials),
                 "is_indexed": self.is_indexed
@@ -815,36 +837,51 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                 detail=f"Error deleting file '{filename}': {str(e)}"
             )
     
-    async def _rebuild_vector_database(self) -> None:
-        """Rebuild the vector database from current course materials"""
+    async def _remove_file_chunks_and_rebuild(self, filename: str) -> None:
+        """Remove chunks for a specific file and rebuild vector database with remaining chunks"""
         try:
-            # Ensure models are initialized
-            self._ensure_models_initialized()
+            print(f"Removing chunks for file: {filename}")
             
-            # Collect all chunks from remaining files
-            all_chunks = []
+            # Remove file from chunk tracking
+            if filename in self.file_chunks:
+                del self.file_chunks[filename]
             
-            for filename, file_info in self.course_materials.items():
-                # We need to reprocess the files to get their chunks
-                # For now, we'll create a simple attribution-based approach
-                # In a production system, you'd want to store the original chunks
+            # Rebuild vector database with remaining chunks
+            remaining_chunks = []
+            for remaining_filename in self.file_chunks:
+                remaining_chunks.extend(self.file_chunks[remaining_filename])
+            
+            if remaining_chunks:
+                # Ensure models are initialized
+                self._ensure_models_initialized()
                 
-                # This is a simplified approach - in reality, you'd want to store
-                # the original file content or chunks to avoid reprocessing
-                print(f"Note: File '{filename}' chunks need to be reconstructed after deletion")
-            
-            # For now, we'll mark as not indexed and require re-upload
-            # In a production system, you'd implement proper chunk storage
-            self.is_indexed = False
-            if self.vector_db:
-                self.vector_db.vectors = []
-            
-            print("Vector database cleared. Files will need to be re-uploaded for full functionality.")
+                # Rebuild chunk-to-file mapping
+                self.chunk_to_file = {}
+                chunk_index = 0
+                for remaining_filename in self.file_chunks:
+                    file_chunks_count = len(self.file_chunks[remaining_filename])
+                    for i in range(file_chunks_count):
+                        self.chunk_to_file[chunk_index] = remaining_filename
+                        chunk_index += 1
+                
+                # Rebuild vector database with remaining chunks
+                self.vector_db = VectorDatabase(embedding_model=self.embedding_model)
+                await self.vector_db.abuild_from_list(remaining_chunks)
+                self.is_indexed = True
+                
+                print(f"Vector database rebuilt with {len(remaining_chunks)} chunks from {len(self.file_chunks)} remaining files")
+            else:
+                # No chunks remaining
+                self.is_indexed = False
+                self.chunk_to_file = {}
+                if self.vector_db:
+                    self.vector_db.vectors = []
             
         except Exception as e:
-            print(f"Error rebuilding vector database: {str(e)}")
-            # Set system to not indexed state
+            print(f"Error rebuilding vector database after deleting {filename}: {str(e)}")
+            # Fallback: mark as not indexed
             self.is_indexed = False
+            self.chunk_to_file = {}
             if self.vector_db:
                 self.vector_db.vectors = []
 
