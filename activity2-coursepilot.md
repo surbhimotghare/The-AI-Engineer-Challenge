@@ -13,14 +13,12 @@ A RAG-powered chatbot that helps professors create an intelligent course assista
 
 ### **Educational File Types**
 - **📄 PDF**: Research papers, syllabi, readings, textbook chapters
-- **📊 PPTX**: Lecture slides, presentations
+- **📊 PPT/PPTX**: Lecture slides, presentations
 - **📝 TXT**: Simple notes, reading lists, course outlines
-- **🖼️ Images (PNG/JPG/JPEG)**: Charts, diagrams, graphs, whiteboard photos, screenshots
+- **🖼️ Images (PNG/JPG)**: Charts, diagrams, graphs, whiteboard photos, screenshots
 - **📈 CSV**: Grade data, student performance analytics, survey results, datasets for analysis
 
-## 🎯 **Enhanced Implementation Plan**
-
-### **Phase 1: Multi-File Backend Infrastructure**
+### Backend
 
 #### **1.1 Enhanced RAG Service**
 Create `api/multi_file_rag_service.py` with:
@@ -42,7 +40,7 @@ Create `api/multi_file_rag_service.py` with:
 - `GET /api/course-materials` - List all uploaded files with metadata
 - `POST /api/analyze-data` - Specific endpoint for CSV data analysis and insights
 
-### **Phase 2: Educational Frontend Interface**
+### Frontend
 
 #### **2.1 Course Materials Upload**
 - **Multi-file drag & drop** with course organization
@@ -59,7 +57,7 @@ Create `api/multi_file_rag_service.py` with:
 - **Data insights** from CSV analysis
 - **Visual explanations** referencing uploaded charts/diagrams
 
-### **Phase 3: Educational Features**
+### Educational Features
 
 #### **3.1 Pedagogical Enhancements**
 - **Concept explanation mode**: Break down complex topics
@@ -81,9 +79,3 @@ Create `api/multi_file_rag_service.py` with:
 - **CSV Analysis**: Automatic insights, trends, and statistical summaries
 - **Multi-modal responses**: Combine text, data insights, and visual references
 - **Educational context**: Frame all responses in pedagogical terms
-
-Let me start implementing this enhanced system. Should I begin with:
-
-1. **Backend Multi-File Processing** (creating the enhanced RAG service)
-2. **Frontend Course Materials Upload** (multi-file upload interface)
-3. **Educational Prompts & Context** (academic tone and pedagogical features)
