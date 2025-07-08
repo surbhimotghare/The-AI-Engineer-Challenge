@@ -4,19 +4,17 @@
 const getApiBaseUrl = () => {
   // In development, use localhost:8000
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    console.log('API Base URL: Using localhost for development');
     return 'http://localhost:8000';
   }
   
-  // In production, use relative URLs (same domain) - this prevents CORS issues
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '');
-  }
-  
-  // Default to relative URLs for production deployment
+  // Force relative URLs in production (always use empty string)
+  console.log('API Base URL: Using relative URLs (empty string) for production');
   return '';
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('Final API_BASE_URL:', API_BASE_URL);
 
 // Type definitions
 export interface PDFInfo {
