@@ -757,7 +757,7 @@ async def course_status():
     response_description="Confirmation of index clearing",
     tags=["Course Materials"]
 )
-async def clear_course_materials():
+async def clear_course_materials_endpoint():
     """
     Clear the current course materials index and reset the RAG system.
     
