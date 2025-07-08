@@ -17,9 +17,9 @@ if current_dir not in sys.path:
 
 # Test endpoint first - simple response without complex imports
 app = FastAPI(
-    title="AI RAG Chat API",
-    description="A comprehensive RAG API with PDF processing",
-    version="1.0.0"
+    title="CoursePilot AI RAG Chat API",
+    description="A comprehensive RAG API for educational content with multi-file support",
+    version="2.0.0"
 )
 
 # Configure CORS middleware
@@ -34,17 +34,14 @@ app.add_middleware(
 @app.get("/api/test")
 async def test_endpoint():
     """Simple test endpoint to verify basic functionality."""
-    return {"status": "ok", "message": "Backend is working", "test": True}
+    return {"status": "ok", "message": "CoursePilot Backend is working", "version": "2.0.0", "test": True}
 
-# Try to import RAG service functions with error handling
+# Try to import both RAG services with error handling
 RAG_IMPORT_ERROR = None
+MULTI_FILE_IMPORT_ERROR = None
+
 try:
-    # Debug: Check current directory and available files
-    import os
-    current_dir = os.getcwd()
-    files_in_dir = os.listdir('.')
-    
-    # Try to import rag_service from api subdirectory
+    # Import original single-file RAG service
     from api.rag_service import (
         upload_pdf, 
         query_pdf, 
@@ -53,21 +50,23 @@ try:
         clear_pdf_index
     )
     RAG_IMPORTS_SUCCESS = True
-    RAG_DEBUG_INFO = {
-        "current_dir": current_dir,
-        "files_in_dir": files_in_dir,
-        "rag_service_found": "rag_service.py" in files_in_dir,
-        "api_dir_found": "api" in files_in_dir
-    }
 except Exception as e:
     RAG_IMPORTS_SUCCESS = False
     RAG_IMPORT_ERROR = str(e)
-    RAG_DEBUG_INFO = {
-        "current_dir": current_dir if 'current_dir' in locals() else "unknown",
-        "files_in_dir": files_in_dir if 'files_in_dir' in locals() else [],
-        "rag_service_found": "rag_service.py" in (files_in_dir if 'files_in_dir' in locals() else []),
-        "api_dir_found": "api" in (files_in_dir if 'files_in_dir' in locals() else [])
-    }
+
+try:
+    # Import new multi-file RAG service
+    from api.multi_file_rag_service import (
+        upload_course_materials,
+        query_course_materials,
+        stream_query_course_materials,
+        get_course_status,
+        clear_course_materials
+    )
+    MULTI_FILE_IMPORTS_SUCCESS = True
+except Exception as e:
+    MULTI_FILE_IMPORTS_SUCCESS = False
+    MULTI_FILE_IMPORT_ERROR = str(e)
 
 @app.get("/api/debug")
 async def debug_endpoint():
@@ -75,9 +74,11 @@ async def debug_endpoint():
     return {
         "rag_imports_success": RAG_IMPORTS_SUCCESS,
         "rag_import_error": RAG_IMPORT_ERROR,
-        "debug_info": RAG_DEBUG_INFO,
+        "multi_file_imports_success": MULTI_FILE_IMPORTS_SUCCESS,
+        "multi_file_import_error": MULTI_FILE_IMPORT_ERROR,
         "python_version": "3.9+",
-        "fastapi_working": True
+        "fastapi_working": True,
+        "version": "2.0.0"
     }
 
 # Enhanced Pydantic models with comprehensive documentation
@@ -125,6 +126,64 @@ class RAGChatRequest(BaseModel):
         description="OpenAI API key for authentication",
         example="sk-..."
     )
+
+class CourseChatRequest(BaseModel):
+    """Request model for educational RAG chat with course materials."""
+    
+    question: str = Field(
+        ...,
+        description="Question to ask about the uploaded course materials",
+        example="Can you explain the key concepts from the lecture slides?"
+    )
+    k: Optional[int] = Field(
+        default=5,
+        description="Number of relevant text chunks to retrieve for context (1-10)",
+        example=5,
+        ge=1,
+        le=10
+    )
+    api_key: str = Field(
+        ...,
+        description="OpenAI API key for authentication",
+        example="sk-..."
+    )
+
+class FileInfo(BaseModel):
+    """Individual file processing information."""
+    
+    filename: str = Field(..., description="Original filename")
+    file_type: str = Field(..., description="File extension/type")
+    file_size: int = Field(..., description="File size in bytes")
+    num_chunks: int = Field(..., description="Number of text chunks created")
+    processing_metadata: Dict[str, Any] = Field(..., description="File-specific processing metadata")
+
+class CourseUploadResponse(BaseModel):
+    """Response model for course materials upload."""
+    
+    status: str = Field(..., description="Processing status", example="success")
+    message: str = Field(..., description="Human-readable status message")
+    processed_files: List[FileInfo] = Field(..., description="Successfully processed files")
+    failed_files: List[Dict[str, Any]] = Field(..., description="Files that failed processing")
+    total_chunks: int = Field(..., description="Total text chunks indexed")
+    is_indexed: bool = Field(..., description="Whether materials are ready for queries")
+
+class CourseStatusResponse(BaseModel):
+    """Response model for course materials status."""
+    
+    is_indexed: bool = Field(..., description="Whether course materials are indexed and ready")
+    total_files: int = Field(..., description="Total number of uploaded files")
+    course_materials: Dict[str, FileInfo] = Field(..., description="Detailed file information")
+    vector_db_size: int = Field(..., description="Number of text chunks in vector database")
+    supported_file_types: List[str] = Field(..., description="List of supported file extensions")
+
+class CourseResponse(BaseModel):
+    """Response model for educational RAG chat."""
+    
+    answer: str = Field(..., description="AI-generated educational response")
+    sources: List[str] = Field(..., description="List of source files referenced")
+    context_used: bool = Field(..., description="Whether course materials were found and used")
+    num_sources: Optional[int] = Field(None, description="Number of source chunks retrieved")
+    educational_guidance: str = Field(..., description="Additional educational guidance")
 
 class PDFInfo(BaseModel):
     """PDF document metadata."""
@@ -467,6 +526,261 @@ async def clear_pdf():
     
     try:
         result = clear_pdf_index()
+        return ClearResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post(
+    "/api/upload-course-materials",
+    response_model=CourseUploadResponse,
+    summary="Upload and Process Multiple Course Materials",
+    description="""
+    Upload multiple files (PDF, DOCX, TXT, etc.) and process them for educational RAG queries.
+    
+    This endpoint:
+    1. Validates the uploaded files
+    2. Extracts text from all files
+    3. Splits text into searchable chunks
+    4. Generates vector embeddings
+    5. Stores in vector database for similarity search
+    
+    The materials will be ready for RAG queries once this process completes.
+    """,
+    response_description="Upload status and course materials processing metadata",
+    tags=["Course Materials"]
+)
+async def upload_course_materials_endpoint(
+    files: List[UploadFile] = File(..., description="List of files to upload and process"),
+    api_key: str = Form(..., description="OpenAI API key for generating embeddings")
+):
+    """
+    Upload and process multiple course materials for educational RAG functionality.
+    
+    **Required:**
+    - Multiple file types (PDF, DOCX, TXT, etc.)
+    - OpenAI API key for embedding generation
+    
+    **Processing Steps:**
+    1. File validation (supported formats)
+    2. Text extraction using appropriate libraries (e.g., PyPDF2, docx2txt)
+    3. Text chunking (1000 chars with 200 char overlap)
+    4. Vector embedding generation
+    5. Storage in searchable vector database
+    
+    **Returns:**
+    - Processing status and metadata for each file
+    - List of successfully processed files
+    - List of files that failed processing
+    - Total text chunks indexed
+    - Overall processing status
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        # Set the OpenAI API key in environment for RAG service
+        os.environ["OPENAI_API_KEY"] = api_key
+        
+        result = await upload_course_materials(files)
+        return CourseUploadResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading course materials: {str(e)}")
+
+@app.post(
+    "/api/course-chat",
+    response_model=CourseResponse,
+    summary="Educational RAG Chat (Streaming)",
+    description="""
+    Ask questions about your uploaded course materials with streaming responses.
+    
+    This endpoint uses Retrieval-Augmented Generation (RAG) to:
+    1. Find relevant text chunks from your course materials
+    2. Use them as context for AI response generation
+    3. Stream the response in real-time
+    
+    **Note**: You must upload course materials first using `/api/upload-course-materials`.
+    """,
+    response_description="Streaming AI response based on course materials",
+    tags=["Course Materials"]
+)
+async def course_chat(request: CourseChatRequest):
+    """
+    Get streaming RAG responses about your uploaded course materials.
+    
+    **Prerequisites:**
+    - Course materials must be uploaded and indexed via `/api/upload-course-materials`
+    - Check status with `/api/course-status` if unsure
+    
+    **Parameters:**
+    - **question**: What you want to know about the course materials
+    - **k**: Number of relevant text chunks to retrieve (1-10)
+    - **api_key**: OpenAI API key for chat completion
+    
+    **Response:**
+    - Streaming text response based on course materials
+    - Will indicate if no relevant information is found
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        os.environ["OPENAI_API_KEY"] = request.api_key
+        
+        async def generate_course_chat():
+            async for chunk in stream_query_course_materials(request.question, request.k):
+                yield chunk
+
+        return StreamingResponse(generate_course_chat(), media_type="text/plain")
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post(
+    "/api/course-chat-complete",
+    response_model=CourseResponse,
+    summary="Educational RAG Chat (Complete Response)",
+    description="""
+    Get complete educational RAG responses with source attribution.
+    
+    Unlike the streaming version, this endpoint returns:
+    - Complete response text
+    - List of source files referenced
+    - Metadata about context retrieval
+    - Educational guidance
+    
+    Useful for debugging, source verification, or applications that need complete responses.
+    """,
+    response_description="Complete educational RAG response with sources and metadata",
+    tags=["Course Materials"]
+)
+async def course_chat_complete(request: CourseChatRequest):
+    """
+    Get complete educational RAG responses with source attribution and metadata.
+    
+    **Prerequisites:**
+    - Course materials must be uploaded and indexed via `/api/upload-course-materials`
+    
+    **Returns:**
+    - **answer**: AI-generated response based on course materials
+    - **sources**: List of relevant text chunks that were used
+    - **context_used**: Whether relevant context was found
+    - **num_sources**: Number of source chunks retrieved
+    - **educational_guidance**: Additional educational guidance
+    
+    **Use Cases:**
+    - Debugging RAG performance
+    - Verifying source attribution
+    - Applications requiring complete responses
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        os.environ["OPENAI_API_KEY"] = request.api_key
+        
+        result = await query_course_materials(request.question, request.k)
+        return CourseResponse(**result)
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(
+    "/api/course-status",
+    response_model=CourseStatusResponse,
+    summary="Check Course Materials Status",
+    description="""
+    Check the current status of course materials processing and indexing.
+    
+    Returns information about:
+    - Whether course materials are currently indexed
+    - Total number of uploaded files
+    - Detailed information about each file
+    - Vector database size and statistics
+    - Supported file types
+    
+    Use this to verify that your course materials are ready for RAG queries.
+    """,
+    response_description="Current course materials processing status and metadata",
+    tags=["Course Materials"]
+)
+async def course_status():
+    """
+    Get current course materials processing status and metadata.
+    
+    **Returns:**
+    - **is_indexed**: Whether course materials are ready for queries
+    - **total_files**: Total number of uploaded files
+    - **course_materials**: Detailed information about each file
+    - **vector_db_size**: Number of chunks in vector database
+    - **supported_file_types**: List of supported file extensions
+    
+    **Status Meanings:**
+    - `is_indexed: true` - Course materials are ready for RAG queries
+    - `is_indexed: false` - No course materials uploaded or processing failed
+    - `vector_db_size: 0` - No indexed content available
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        result = get_course_status()
+        return CourseStatusResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete(
+    "/api/clear-course-materials",
+    response_model=ClearResponse,
+    summary="Clear Course Materials Index",
+    description="""
+    Clear the current course materials index and reset the RAG system.
+    
+    This will:
+    - Remove all indexed course materials content
+    - Clear the vector database
+    - Reset processing status
+    
+    Use this when you want to upload new course materials or start fresh.
+    """,
+    response_description="Confirmation of index clearing",
+    tags=["Course Materials"]
+)
+async def clear_course_materials():
+    """
+    Clear the current course materials index and reset the RAG system.
+    
+    **Effect:**
+    - Removes all course materials content from memory
+    - Clears vector database
+    - Resets indexing status to false
+    
+    **Use Cases:**
+    - Uploading a new set of course materials
+    - Starting fresh after processing errors
+    - Clearing memory usage
+    
+    **Note:** This operation cannot be undone.
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        result = clear_course_materials()
         return ClearResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
