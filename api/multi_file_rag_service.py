@@ -81,30 +81,192 @@ class PPTXProcessor(FileProcessor):
     def extract_text(file_path: str) -> Tuple[List[str], Dict[str, Any]]:
         """Extract text from PowerPoint slides"""
         try:
-            prs = Presentation(file_path)
+            print(f"PPTX Processing: Opening file {file_path}")
+            
+            # Check if file exists and is accessible
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"PPTX file not found: {file_path}")
+            
+            # Try to open the presentation
+            try:
+                prs = Presentation(file_path)
+                print(f"PPTX Processing: Successfully opened presentation with {len(prs.slides)} slides")
+            except Exception as pptx_error:
+                print(f"PPTX Processing: Error opening presentation: {str(pptx_error)}")
+                # Check if this might be a .ppt file disguised as .pptx
+                if "Package not found" in str(pptx_error) or "not a valid" in str(pptx_error).lower():
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Invalid PowerPoint file. This might be an older .ppt format or corrupted file. "
+                               f"Please try: 1) Converting to .pptx format, 2) Re-saving in PowerPoint, or 3) Using a different file. "
+                               f"Error: {str(pptx_error)}"
+                    )
+                else:
+                    raise HTTPException(status_code=400, detail=f"PowerPoint processing failed: {str(pptx_error)}")
+            
             slide_texts = []
+            total_slides = len(prs.slides)
             
             for slide_num, slide in enumerate(prs.slides, 1):
-                slide_text = f"[Slide {slide_num}]\n"
-                
-                # Extract text from shapes
-                for shape in slide.shapes:
-                    if hasattr(shape, "text") and shape.text.strip():
-                        slide_text += shape.text.strip() + "\n"
-                
-                if slide_text.strip() != f"[Slide {slide_num}]":
-                    slide_texts.append(slide_text)
+                try:
+                    slide_text = f"[Slide {slide_num}]\n"
+                    shape_count = 0
+                    
+                    # Extract text from shapes with better error handling
+                    for shape in slide.shapes:
+                        try:
+                            if hasattr(shape, "text") and shape.text.strip():
+                                slide_text += shape.text.strip() + "\n"
+                                shape_count += 1
+                        except Exception as shape_error:
+                            print(f"PPTX Processing: Error reading shape on slide {slide_num}: {str(shape_error)}")
+                            continue
+                    
+                    # Only add slides that have content beyond the slide header
+                    if slide_text.strip() != f"[Slide {slide_num}]":
+                        slide_texts.append(slide_text)
+                        print(f"PPTX Processing: Slide {slide_num} extracted with {shape_count} text shapes")
+                    else:
+                        print(f"PPTX Processing: Slide {slide_num} has no extractable text")
+                        
+                except Exception as slide_error:
+                    print(f"PPTX Processing: Error processing slide {slide_num}: {str(slide_error)}")
+                    continue
+            
+            print(f"PPTX Processing: Extracted text from {len(slide_texts)} out of {total_slides} slides")
+            
+            # Handle case where no text was extracted
+            if not slide_texts:
+                # Create a placeholder entry so the file doesn't fail completely
+                slide_texts = [f"[PowerPoint File: {os.path.basename(file_path)}]\n[No extractable text found in {total_slides} slides - may contain only images or complex layouts]"]
+                print(f"PPTX Processing: No text extracted, created placeholder content")
             
             metadata = {
-                "num_slides": len(prs.slides),
+                "num_slides": total_slides,
                 "num_text_slides": len(slide_texts),
                 "total_text_length": sum(len(text) for text in slide_texts),
-                "extraction_method": "python-pptx"
+                "extraction_method": "python-pptx",
+                "processing_notes": f"Processed {total_slides} slides, extracted text from {len(slide_texts)} slides"
             }
             
+            print(f"PPTX Processing: Successfully completed. Metadata: {metadata}")
             return slide_texts, metadata
+            
+        except HTTPException:
+            # Re-raise HTTP exceptions as-is
+            raise
         except Exception as e:
+            print(f"PPTX Processing: Unexpected error: {str(e)}")
             raise HTTPException(status_code=400, detail=f"PowerPoint processing failed: {str(e)}")
+
+
+class PPTProcessor(FileProcessor):
+    """PowerPoint processor for older .ppt format files"""
+    
+    @staticmethod
+    def extract_text(file_path: str) -> Tuple[List[str], Dict[str, Any]]:
+        """Extract text from older .ppt PowerPoint files"""
+        try:
+            print(f"PPT Processing: Attempting to process older PowerPoint file {file_path}")
+            
+            # Check if file exists
+            if not os.path.exists(file_path):
+                raise FileNotFoundError(f"PPT file not found: {file_path}")
+            
+            # Try LibreOffice conversion approach first (if available)
+            import subprocess
+            import shutil
+            
+            # Check if LibreOffice is available
+            libreoffice_cmd = None
+            for cmd in ['libreoffice', 'soffice']:
+                if shutil.which(cmd):
+                    libreoffice_cmd = cmd
+                    break
+            
+            if libreoffice_cmd:
+                print(f"PPT Processing: Found LibreOffice, attempting conversion")
+                try:
+                    # Create a temporary directory for conversion
+                    import tempfile
+                    with tempfile.TemporaryDirectory() as temp_dir:
+                        # Convert .ppt to .pptx using LibreOffice
+                        result = subprocess.run([
+                            libreoffice_cmd, '--headless', '--invisible', '--nodefault', '--nolockcheck',
+                            '--nologo', '--norestore', '--convert-to', 'pptx',
+                            '--outdir', temp_dir, file_path
+                        ], capture_output=True, text=True, timeout=30)
+                        
+                        if result.returncode == 0:
+                            # Find the converted file
+                            converted_files = [f for f in os.listdir(temp_dir) if f.endswith('.pptx')]
+                            if converted_files:
+                                converted_path = os.path.join(temp_dir, converted_files[0])
+                                print(f"PPT Processing: Successfully converted to {converted_path}")
+                                
+                                # Process the converted file using PPTXProcessor
+                                return PPTXProcessor.extract_text(converted_path)
+                        
+                        print(f"PPT Processing: LibreOffice conversion failed: {result.stderr}")
+                except subprocess.TimeoutExpired:
+                    print(f"PPT Processing: LibreOffice conversion timed out")
+                except Exception as conversion_error:
+                    print(f"PPT Processing: LibreOffice conversion error: {str(conversion_error)}")
+            
+            # If LibreOffice conversion fails or is not available, provide helpful message
+            print(f"PPT Processing: Creating fallback content for .ppt file")
+            
+            # Create helpful placeholder content
+            filename = os.path.basename(file_path)
+            file_size = os.path.getsize(file_path)
+            
+            placeholder_text = f"""[PowerPoint File (Legacy Format): {filename}]
+
+This is an older PowerPoint (.ppt) file that requires special processing.
+
+File Information:
+- Filename: {filename}
+- File Size: {file_size} bytes
+- Format: Microsoft PowerPoint 97-2003 (.ppt)
+
+To extract text content from this file, please:
+1. Open the file in Microsoft PowerPoint or LibreOffice Impress
+2. Save it as a newer .pptx format
+3. Re-upload the .pptx file
+
+Alternatively, you can:
+- Use PowerPoint's "Save As" and choose "PowerPoint Presentation (.pptx)"
+- Use Google Slides to open and re-export the file
+- Use LibreOffice Impress to convert the format
+
+The system will then be able to extract and index the text content for educational chat."""
+
+            texts = [placeholder_text]
+            
+            metadata = {
+                "num_slides": "Unknown (legacy format)",
+                "file_size": file_size,
+                "format": "PowerPoint 97-2003 (.ppt)",
+                "extraction_method": "placeholder (conversion required)",
+                "processing_notes": "Legacy .ppt format requires conversion to .pptx for text extraction",
+                "recommendations": [
+                    "Convert to .pptx format",
+                    "Re-save in modern PowerPoint",
+                    "Use LibreOffice Impress for conversion"
+                ]
+            }
+            
+            print(f"PPT Processing: Created placeholder content with conversion guidance")
+            return texts, metadata
+            
+        except Exception as e:
+            print(f"PPT Processing: Error: {str(e)}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unable to process .ppt file. Please convert to .pptx format first. "
+                       f"You can do this by opening the file in PowerPoint and saving as .pptx format. "
+                       f"Error: {str(e)}"
+            )
 
 
 class ImageProcessor(FileProcessor):
@@ -255,6 +417,7 @@ class MultiFileRAGManager:
         self.processors = {
             'pdf': PDFProcessor(),
             'pptx': PPTXProcessor(),
+            'ppt': PPTProcessor(),  # Add support for older PowerPoint format
             'txt': TXTProcessor(),
             'png': ImageProcessor(),
             'jpg': ImageProcessor(),
@@ -351,6 +514,13 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                     processor = self.processors[file_extension]
                     documents, file_metadata = processor.extract_text(tmp_file_path)
                     
+                    # Debug logging
+                    print(f"Processing file: {file.filename}")
+                    print(f"File extension: {file_extension}")
+                    print(f"Documents type: {type(documents)}")
+                    print(f"Documents length: {len(documents) if hasattr(documents, '__len__') else 'No length'}")
+                    print(f"Documents content preview: {str(documents)[:200] if documents else 'Empty'}")
+                    
                     # Clean up temporary file
                     os.unlink(tmp_file_path)
                     
@@ -360,6 +530,15 @@ Remember: Your goal is to enhance learning and understanding, not just provide a
                             status_code=400,
                             detail=f"File {file.filename} appears to be empty or contains no extractable content."
                         )
+                    
+                    # Ensure documents is a list of strings
+                    if not isinstance(documents, list):
+                        documents = [str(documents)]
+                    
+                    # Ensure all items in documents are strings
+                    documents = [str(doc) for doc in documents if doc is not None]
+                    
+                    print(f"After validation - Documents type: {type(documents)}, Length: {len(documents)}")
                     
                     # Split documents into chunks
                     file_chunks = self.text_splitter.split_texts(documents)
