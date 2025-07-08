@@ -302,6 +302,27 @@ export const clearCourseMaterials = async (): Promise<void> => {
   }
 };
 
+export const deleteCourseMaterial = async (filename: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/delete-course-material/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || `Delete course material request failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error in deleteCourseMaterial:', error);
+    throw error;
+  }
+};
+
 // PDF Status API
 export const getPDFStatus = async (): Promise<PDFStatusResponse> => {
   try {

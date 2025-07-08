@@ -785,6 +785,59 @@ async def clear_course_materials_endpoint():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete(
+    "/api/delete-course-material/{filename}",
+    response_model=Dict[str, Any],
+    summary="Delete Individual Course Material",
+    description="""
+    Delete a specific course material file by filename.
+    
+    This will:
+    - Remove the specified file from course materials
+    - Update the vector database (currently requires re-upload of remaining files)
+    - Maintain other course materials
+    
+    **Note:** Due to current vector database limitations, remaining files will need
+    to be re-uploaded for full search functionality. This is a known limitation
+    that will be improved in future versions.
+    """,
+    response_description="Confirmation of file deletion with remaining materials info",
+    tags=["Course Materials"]
+)
+async def delete_course_material_endpoint(filename: str):
+    """
+    Delete a specific course material file by filename.
+    
+    **Parameters:**
+    - **filename**: Exact filename of the material to delete
+    
+    **Effect:**
+    - Removes the specified file from course materials
+    - Updates vector database (currently clears it for remaining files)
+    - Maintains other uploaded materials
+    
+    **Response:**
+    - **status**: Operation status
+    - **message**: Human-readable result message
+    - **removed_file**: Information about the deleted file
+    - **remaining_files**: Number of files still in the system
+    - **is_indexed**: Whether remaining files are indexed for search
+    
+    **Note:** This operation cannot be undone.
+    """
+    if not MULTI_FILE_IMPORTS_SUCCESS:
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Multi-file RAG system not available: {MULTI_FILE_IMPORT_ERROR}"
+        )
+    
+    try:
+        from multi_file_rag_service import delete_course_material
+        result = await delete_course_material(filename)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get(
     "/api/health",
     response_model=HealthResponse,

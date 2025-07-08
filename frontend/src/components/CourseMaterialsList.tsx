@@ -43,8 +43,9 @@ import {
   FiDatabase,
   FiFolder,
   FiDownload,
+  FiX,
 } from 'react-icons/fi';
-import { clearCourseMaterials } from '../lib/api';
+import { clearCourseMaterials, deleteCourseMaterial } from '../lib/api';
 import type { CourseStatusResponse, FileInfo } from '../lib/api';
 
 interface CourseMaterialsListProps {
@@ -95,6 +96,7 @@ export default function CourseMaterialsList({
   onError 
 }: CourseMaterialsListProps) {
   const [isClearing, setIsClearing] = React.useState(false);
+  const [deletingFiles, setDeletingFiles] = React.useState<Set<string>>(new Set());
   const toast = useToast();
 
   // Color mode values
@@ -136,6 +138,47 @@ export default function CourseMaterialsList({
       }
     } finally {
       setIsClearing(false);
+    }
+  };
+
+  const handleDeleteFile = async (filename: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${filename}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingFiles(prev => new Set([...prev, filename]));
+    try {
+      await deleteCourseMaterial(filename);
+      toast({
+        title: 'File Deleted',
+        description: `"${filename}" has been successfully deleted.`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      if (onClearComplete) {
+        onClearComplete(); // Refresh the course status
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete file';
+      toast({
+        title: 'Delete Error',
+        description: errorMessage,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      
+      if (onError) {
+        onError(errorMessage);
+      }
+    } finally {
+      setDeletingFiles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(filename);
+        return newSet;
+      });
     }
   };
 
@@ -279,6 +322,16 @@ export default function CourseMaterialsList({
                                 {Object.keys(fileInfo.processing_metadata).length} metadata fields
                               </Text>
                             )}
+                            <Button
+                              size="xs"
+                              colorScheme="red"
+                              variant="ghost"
+                              leftIcon={<FiX />}
+                              onClick={() => handleDeleteFile(filename)}
+                              isLoading={deletingFiles.has(filename)}
+                            >
+                              Delete
+                            </Button>
                           </VStack>
                         </Flex>
                       </Card>
