@@ -44,8 +44,8 @@ try:
     current_dir = os.getcwd()
     files_in_dir = os.listdir('.')
     
-    # Try to import rag_service
-    from rag_service import (
+    # Try to import rag_service from api subdirectory
+    from api.rag_service import (
         upload_pdf, 
         query_pdf, 
         stream_query_pdf,
@@ -56,7 +56,8 @@ try:
     RAG_DEBUG_INFO = {
         "current_dir": current_dir,
         "files_in_dir": files_in_dir,
-        "rag_service_found": "rag_service.py" in files_in_dir
+        "rag_service_found": "rag_service.py" in files_in_dir,
+        "api_dir_found": "api" in files_in_dir
     }
 except Exception as e:
     RAG_IMPORTS_SUCCESS = False
@@ -64,7 +65,8 @@ except Exception as e:
     RAG_DEBUG_INFO = {
         "current_dir": current_dir if 'current_dir' in locals() else "unknown",
         "files_in_dir": files_in_dir if 'files_in_dir' in locals() else [],
-        "rag_service_found": "rag_service.py" in (files_in_dir if 'files_in_dir' in locals() else [])
+        "rag_service_found": "rag_service.py" in (files_in_dir if 'files_in_dir' in locals() else []),
+        "api_dir_found": "api" in (files_in_dir if 'files_in_dir' in locals() else [])
     }
 
 @app.get("/api/debug")
